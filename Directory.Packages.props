@@ -1,0 +1,97 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- ── Testing ───────────────────────────────────────────────────────── -->
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.2" />
+    <PackageVersion Include="FluentAssertions" Version="8.5.0" />
+    <PackageVersion Include="Bogus" Version="35.6.2" />
+    <!-- Architecture tests -->
+    <PackageVersion Include="NetArchTest.Rules" Version="1.3.2" />
+    <!-- Testcontainers — versions pinned here; referenced per-project -->
+    <PackageVersion Include="Testcontainers" Version="4.6.0" />
+    <PackageVersion Include="Testcontainers.MsSql" Version="4.6.0" />
+    <PackageVersion Include="Testcontainers.RabbitMq" Version="4.6.0" />
+    <PackageVersion Include="Testcontainers.Redis" Version="4.6.0" />
+    <PackageVersion Include="WireMock.Net" Version="1.6.14" />
+    <PackageVersion Include="Respawn" Version="6.2.1" />
+
+    <!-- ── ASP.NET Core / Hosting ────────────────────────────────────────── -->
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
+
+    <!-- ── ASP.NET Core Identity ─────────────────────────────────────────── -->
+    <PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.0" />
+
+    <!-- ── EF Core ───────────────────────────────────────────────────────── -->
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0" />
+
+    <!-- ── Dapper (reporting only, introduced after measurement) ─────────── -->
+    <PackageVersion Include="Dapper" Version="2.1.66" />
+
+    <!-- ── Validation ───────────────────────────────────────────────────── -->
+    <PackageVersion Include="FluentValidation" Version="12.0.0" />
+    <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.0.0" />
+
+    <!-- ── JWT / Auth ───────────────────────────────────────────────────── -->
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
+    <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.11.0" />
+
+    <!-- ── Feature Management ───────────────────────────────────────────── -->
+    <PackageVersion Include="Microsoft.FeatureManagement.AspNetCore" Version="4.0.0" />
+
+    <!-- ── Messaging: RabbitMQ ───────────────────────────────────────────── -->
+    <PackageVersion Include="RabbitMQ.Client" Version="7.1.2" />
+
+    <!-- ── Object Storage: MinIO / AWSSDK.S3 ────────────────────────────── -->
+    <PackageVersion Include="AWSSDK.S3" Version="3.7.422.2" />
+
+    <!-- ── Cache: Redis ──────────────────────────────────────────────────── -->
+    <PackageVersion Include="StackExchange.Redis" Version="2.8.41" />
+
+    <!-- ── Observability ─────────────────────────────────────────────────── -->
+    <PackageVersion Include="OpenTelemetry" Version="1.12.0" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.12.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.12.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.12.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.SqlClient" Version="0.1.0-beta.4" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.12.0" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.12.0" />
+    <PackageVersion Include="OpenTelemetry.Exporter.Console" Version="1.12.0" />
+    <PackageVersion Include="Serilog" Version="4.3.0" />
+    <PackageVersion Include="Serilog.AspNetCore" Version="9.0.0" />
+    <PackageVersion Include="Serilog.Enrichers.Environment" Version="3.0.1" />
+    <PackageVersion Include="Serilog.Sinks.Console" Version="6.0.0" />
+    <PackageVersion Include="Serilog.Sinks.Seq" Version="9.0.0" />
+    <PackageVersion Include="Serilog.Sinks.OpenTelemetry" Version="4.0.0" />
+
+    <!-- ── Health Checks ─────────────────────────────────────────────────── -->
+    <PackageVersion Include="AspNetCore.HealthChecks.SqlServer" Version="9.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.Redis" Version="9.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.RabbitMQ" Version="9.0.0" />
+
+    <!-- ── Aspire ─────────────────────────────────────────────────────────── -->
+    <PackageVersion Include="Aspire.Hosting" Version="9.3.1" />
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.3.1" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="9.3.1" />
+    <PackageVersion Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="9.3.1" />
+    <PackageVersion Include="Aspire.StackExchange.Redis" Version="9.3.1" />
+
+    <!-- ── Resilience ─────────────────────────────────────────────────────── -->
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="9.7.0" />
+
+    <!-- ── Scheduling ─────────────────────────────────────────────────────── -->
+    <PackageVersion Include="Quartz" Version="3.14.0" />
+    <PackageVersion Include="Quartz.Extensions.Hosting" Version="3.14.0" />
+
+    <!-- ── SignalR ────────────────────────────────────────────────────────── -->
+    <PackageVersion Include="Microsoft.AspNetCore.SignalR" Version="1.2.0" />
+  </ItemGroup>
+</Project>

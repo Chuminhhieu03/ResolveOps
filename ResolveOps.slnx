@@ -1,0 +1,44 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/AppHost/">
+    <Project Path="src/AppHost/ResolveOps.AppHost/ResolveOps.AppHost.csproj" />
+  </Folder>
+  <Folder Name="/src/BuildingBlocks/">
+    <Project Path="src/BuildingBlocks/ResolveOps.Application/ResolveOps.Application.csproj" />
+    <Project Path="src/BuildingBlocks/ResolveOps.Domain/ResolveOps.Domain.csproj" />
+    <Project Path="src/BuildingBlocks/ResolveOps.Messaging/ResolveOps.Messaging.csproj" />
+    <Project Path="src/BuildingBlocks/ResolveOps.Observability/ResolveOps.Observability.csproj" />
+    <Project Path="src/BuildingBlocks/ResolveOps.Persistence/ResolveOps.Persistence.csproj" />
+    <Project Path="src/BuildingBlocks/ResolveOps.Security/ResolveOps.Security.csproj" />
+  </Folder>
+  <Folder Name="/src/Hosts/">
+    <Project Path="src/Hosts/ResolveOps.Api/ResolveOps.Api.csproj" />
+    <Project Path="src/Hosts/ResolveOps.Worker/ResolveOps.Worker.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/">
+    <Project Path="src/Modules/ResolveOps.Modules.Audit/ResolveOps.Modules.Audit.csproj" />
+    <Project Path="src/Modules/ResolveOps.Modules.Claims/ResolveOps.Modules.Claims.csproj" />
+    <Project Path="src/Modules/ResolveOps.Modules.Documents/ResolveOps.Modules.Documents.csproj" />
+    <Project Path="src/Modules/ResolveOps.Modules.Exceptions/ResolveOps.Modules.Exceptions.csproj" />
+    <Project Path="src/Modules/ResolveOps.Modules.Identity/ResolveOps.Modules.Identity.csproj" />
+    <Project Path="src/Modules/ResolveOps.Modules.Integrations/ResolveOps.Modules.Integrations.csproj" />
+    <Project Path="src/Modules/ResolveOps.Modules.Notifications/ResolveOps.Modules.Notifications.csproj" />
+    <Project Path="src/Modules/ResolveOps.Modules.Partners/ResolveOps.Modules.Partners.csproj" />
+    <Project Path="src/Modules/ResolveOps.Modules.Reporting/ResolveOps.Modules.Reporting.csproj" />
+    <Project Path="src/Modules/ResolveOps.Modules.Shipments/ResolveOps.Modules.Shipments.csproj" />
+    <Project Path="src/Modules/ResolveOps.Modules.Tenancy/ResolveOps.Modules.Tenancy.csproj" />
+    <Project Path="src/Modules/ResolveOps.Modules.Tracking/ResolveOps.Modules.Tracking.csproj" />
+    <Project Path="src/Modules/ResolveOps.Modules.Workflow/ResolveOps.Modules.Workflow.csproj" />
+  </Folder>
+  <Folder Name="/src/ServiceDefaults/">
+    <Project Path="src/ServiceDefaults/ResolveOps.ServiceDefaults/ResolveOps.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ResolveOps.ArchitectureTests/ResolveOps.ArchitectureTests.csproj" />
+    <Project Path="tests/ResolveOps.ContractTests/ResolveOps.ContractTests.csproj" />
+    <Project Path="tests/ResolveOps.EndToEndTests/ResolveOps.EndToEndTests.csproj" />
+    <Project Path="tests/ResolveOps.IntegrationTests/ResolveOps.IntegrationTests.csproj" />
+    <Project Path="tests/ResolveOps.PerformanceTests/ResolveOps.PerformanceTests.csproj" />
+    <Project Path="tests/ResolveOps.UnitTests/ResolveOps.UnitTests.csproj" />
+  </Folder>
+</Solution>

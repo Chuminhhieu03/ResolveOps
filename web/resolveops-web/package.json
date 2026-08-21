@@ -1,0 +1,13 @@
+{
+  "name": "resolveops-web",
+  "version": "0.0.0",
+  "private": true,
+  "description": "ResolveOps Angular Frontend - Initialized in Phase 15",
+  "scripts": {
+    "start": "echo 'Run ng serve in Phase 15'",
+    "build": "echo 'Run ng build in Phase 15'"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

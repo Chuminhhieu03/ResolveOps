@@ -1,0 +1,122 @@
+## .gitignore — ResolveOps (.NET 10 / Angular / Docker)
+
+# ── .NET / C# ──────────────────────────────────────────────────────────────
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.lock.json
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]uild/
+[Pp]ublish/
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+!**/packages/build/
+
+# Rider
+.idea/
+*.sln.iml
+
+# Visual Studio
+.vs/
+*.aps
+*.ncb
+*.opendb
+*.opensdf
+*.sdf
+*.cachefile
+*.VC.db
+*.VC.VC.opendb
+*.vbproj.user
+*.csproj.user
+
+# VS Code
+.vscode/
+!.vscode/extensions.json
+
+# Coverage and test results
+**/TestResults/
+*.coverage
+*.coveragexml
+coverage/
+coverage.cobertura.xml
+
+# Entity Framework
+*.mdf
+*.ldf
+*.ndf
+
+# ── Secrets / environment (NEVER commit) ───────────────────────────────────
+*.env
+.env
+.env.*
+!.env.example
+appsettings.*.local.json
+secrets.json
+**/user-secrets.json
+
+# ── Angular / Node ─────────────────────────────────────────────────────────
+web/**/node_modules/
+web/**/.angular/
+web/**/dist/
+web/**/.cache/
+web/**/.npm/
+web/**/npm-debug.log*
+web/**/yarn-debug.log*
+web/**/yarn-error.log*
+web/**/*.js.map
+web/**/*.css.map
+
+# ── Docker ─────────────────────────────────────────────────────────────────
+# Keep docker-compose files but ignore local overrides with secrets
+docker-compose.override.yml
+deploy/docker/*.env
+
+# ── OS files ───────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ── JetBrains / Rider ──────────────────────────────────────────────────────
+.idea/
+*.DotSettings.user
+resharper.xml
+
+# ── Temporary files ────────────────────────────────────────────────────────
+*.tmp
+*.bak
+*.swp
+*~
