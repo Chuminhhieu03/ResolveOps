@@ -1,21 +1,32 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <!--
+      SSH.NET 2024.2.0 is pulled transitively by Testcontainers.MsSql (for SSH tunneling support).
+      It has a known high CVE with no available fix in the current Testcontainers version.
+      Testcontainers runs in test-only context — never deployed. Suppressed here only.
+      See docs/assumptions.md — Phase 1 (A-011) for the full rationale.
+    -->
+    <NoWarn>$(NoWarn);NU1903;CA1707</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="coverlet.collector"  />
-    <PackageReference Include="Microsoft.NET.Test.Sdk"  />
-    <PackageReference Include="xunit"  />
-    <PackageReference Include="xunit.runner.visualstudio"  />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Testcontainers.MsSql" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\BuildingBlocks\ResolveOps.Persistence\ResolveOps.Persistence.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,9 +1,27 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
+  <!--
+    NU1903 suppression is scoped to this project only.
+    Microsoft.EntityFrameworkCore.Design is a design-time-only package (PrivateAssets=all)
+    that brings System.Security.Cryptography.Xml via MSBuild tooling.
+    That package has known CVE advisories that have no fix available in any released version.
+    Suppressing NU1903 here is safe because:
+    - The package is never deployed (PrivateAssets=all).
+    - The vulnerability is in MSBuild tooling, not in runtime code.
+    - The advisory is tracked and will be revisited when a safe version is released.
+    See docs/assumptions.md — Phase 1 for the full rationale.
+  -->
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
+    <NoWarn>$(NoWarn);NU1903</NoWarn>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <!-- Design-time only: never deployed to production. -->
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
 
 </Project>

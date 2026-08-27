@@ -20,10 +20,10 @@ and adds current phase status. When in conflict, the spec wins.
 
 | Field | Value |
 |---|---|
-| **Current phase** | Phase 0 — Product and Repository Foundation |
+| **Current phase** | Phase 1 — Runtime, Aspire, database, and observability foundation |
 | **Phase status** | ✅ Complete |
-| **Next phase** | Phase 1 — Runtime, Aspire, database, and observability foundation |
-| **Last updated** | 2026-08-21 |
+| **Next phase** | Phase 2 — Tenancy and identity |
+| **Last updated** | 2026-08-27 |
 
 ### Phase 0 deliverables completed
 
@@ -147,7 +147,7 @@ The agent MUST NOT:
 | Phase | Name | Status |
 |---|---|---|
 | 0 | Product and repository foundation | ✅ Complete |
-| 1 | Runtime, Aspire, database, observability foundation | ⬜ Not started |
+| 1 | Runtime, Aspire, database, observability foundation | ✅ Complete |
 | 2 | Tenancy and identity | ⬜ Not started |
 | 3 | Partners, locations, business calendar | ⬜ Not started |
 | 4 | Shipment domain | ⬜ Not started |

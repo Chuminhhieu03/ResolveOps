@@ -1,21 +1,31 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="coverlet.collector"  />
-    <PackageReference Include="Microsoft.NET.Test.Sdk"  />
-    <PackageReference Include="xunit"  />
-    <PackageReference Include="xunit.runner.visualstudio"  />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="NetArchTest.Rules" />
+    <PackageReference Include="FluentAssertions" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Reference BuildingBlocks to access assembly references for dependency analysis -->
+    <ProjectReference Include="..\..\src\BuildingBlocks\ResolveOps.Domain\ResolveOps.Domain.csproj" />
+    <ProjectReference Include="..\..\src\BuildingBlocks\ResolveOps.Application\ResolveOps.Application.csproj" />
+    <ProjectReference Include="..\..\src\BuildingBlocks\ResolveOps.Persistence\ResolveOps.Persistence.csproj" />
+    <ProjectReference Include="..\..\src\BuildingBlocks\ResolveOps.Messaging\ResolveOps.Messaging.csproj" />
+    <ProjectReference Include="..\..\src\BuildingBlocks\ResolveOps.Observability\ResolveOps.Observability.csproj" />
+    <ProjectReference Include="..\..\src\BuildingBlocks\ResolveOps.Security\ResolveOps.Security.csproj" />
   </ItemGroup>
 
 </Project>

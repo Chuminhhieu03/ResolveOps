@@ -50,7 +50,54 @@
 
 ---
 
-## Template for new assumptions
+## Phase 1 Assumptions
+
+### A-006 — Snake_case naming via custom convention (no external package)
+
+- **Date:** 2026-08-27
+- **Status:** Active
+- **Context:** Spec §15.1 requires snake_case column and table names. `EFCore.NamingConventions` (the standard approach) transitively pulls `System.Security.Cryptography.Xml` which has unfixed high-severity CVEs in all versions. Using it would require suppressing NU1903 across all projects and shipping a known-vulnerable package.
+- **Decision:** Implement snake_case via a custom `IEntityTypeAddedConvention` (table names) and an `OnModelCreating` loop (column names). No external package. The custom convention lives in `ResolveOps.Persistence/Conventions/SnakeCaseNamingConvention.cs`.
+- **Reversible:** Yes — replace with `EFCore.NamingConventions.UseSnakeCaseNamingConvention()` if the transitive vulnerability is patched.
+- **Impact:** None on business logic. Snake_case applies to all entities identically.
+
+### A-007 — Single shared AppDbContext for the modular monolith
+
+- **Date:** 2026-08-27
+- **Status:** Active
+- **Context:** Spec §12 describes a modular monolith with per-module boundaries. A single `AppDbContext` can share modules via `ApplyConfigurationsFromAssembly` scanning. Per-module contexts would require cross-module query complexity.
+- **Decision:** Use a single `AppDbContext` in `ResolveOps.Persistence`. Module-specific entity configurations are registered via `IEntityTypeConfiguration<T>` in each module's assembly and discovered at startup. This can be refactored to per-module bounded contexts if required.
+- **Reversible:** Yes — split into per-module `DbContext` if isolation requirements demand it.
+
+### A-008 — Initial migration creates only the migrations history table
+
+- **Date:** 2026-08-27
+- **Status:** Active
+- **Context:** Phase 1 requires a working `MigrateAsync()` call on integration test startup. No domain entities exist yet (they are defined from Phase 2+).
+- **Decision:** The `InitialCreate` migration is an empty migration. It creates only `__EFMigrationsHistory`. Domain entity migrations are added per business phase.
+- **Reversible:** Yes — subsequent migrations add domain tables.
+- **Impact:** Integration test verifies `MigrateAsync()` succeeds and history table is populated.
+
+### A-009 — Aspire AppHost suppresses NU1902/NU1903 for Kubernetes/MessagePack transitive deps
+
+- **Date:** 2026-08-27
+- **Status:** Active
+- **Context:** `Aspire.Hosting.AppHost 9.3.1` transitively pulls `KubernetesClient` and `MessagePack` packages with known moderate/high severity CVEs. No fixed versions are available from those packages. The AppHost project is development/orchestration-only and is never deployed to production.
+- **Decision:** Suppress `NU1902` and `NU1903` in `ResolveOps.AppHost.csproj` only. All other projects retain full vulnerability auditing.
+- **Reversible:** Yes — remove suppression when Aspire releases a version with updated transitive deps.
+- **ADR:** [ADR-006](../adr/ADR-006-aspire-local-orchestration.md)
+
+### A-010 — Microsoft.EntityFrameworkCore.Design suppresses NU1903 in Persistence project
+
+- **Date:** 2026-08-27
+- **Status:** Active
+- **Context:** `EFCore.Design` brings `MSBuild.Tasks.Core` which brings `System.Security.Cryptography.Xml 9.0.0` (unfixed high CVE). EFCore.Design is `PrivateAssets=all` — design-time only, never deployed.
+- **Decision:** Suppress `NU1903` in `ResolveOps.Persistence.csproj` only. This is safe because the vulnerability is in MSBuild tooling, not in runtime code.
+- **Reversible:** Remove suppression when a patched version of `Microsoft.Build.Tasks.Core` is released.
+
+---
+
+
 
 ```markdown
 ### A-NNN — Title
