@@ -2,6 +2,8 @@
 // Run with: dotnet run --project src/AppHost/ResolveOps.AppHost
 // Requires Docker to be running for SQL Server and Redis containers.
 
+using Projects;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 // ── Infrastructure resources ──────────────────────────────────────────────
@@ -14,13 +16,13 @@ var redis = builder.AddRedis("redis");
 
 // ── Application resources ─────────────────────────────────────────────────
 
-builder.AddProject<Projects.ResolveOps_Api>("api")
+builder.AddProject<ResolveOpsApi>("api")
     .WithReference(sqlServer)
     .WithReference(redis)
     .WaitFor(sqlServer)
     .WaitFor(redis);
 
-builder.AddProject<Projects.ResolveOps_Worker>("worker")
+builder.AddProject<ResolveOpsWorker>("worker")
     .WithReference(sqlServer)
     .WithReference(redis)
     .WaitFor(sqlServer)
@@ -33,12 +35,12 @@ builder.Build().Run();
 // ── Manual Project Metadata (bypasses Aspire 9.x source generator issues on .NET 10 SDK) ──
 namespace Projects
 {
-    public class ResolveOps_Api : Aspire.Hosting.ApplicationModel.IProjectMetadata
+    public class ResolveOpsApi : IProjectMetadata
     {
         public string ProjectPath => @"..\..\Hosts\ResolveOps.Api\ResolveOps.Api.csproj";
     }
 
-    public class ResolveOps_Worker : Aspire.Hosting.ApplicationModel.IProjectMetadata
+    public class ResolveOpsWorker : IProjectMetadata
     {
         public string ProjectPath => @"..\..\Hosts\ResolveOps.Worker\ResolveOps.Worker.csproj";
     }

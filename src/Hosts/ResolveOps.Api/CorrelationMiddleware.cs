@@ -16,9 +16,9 @@ namespace ResolveOps.Api;
 /// </summary>
 internal sealed class CorrelationMiddleware
 {
-    private const string HeaderName = "X-Correlation-ID";
-    private const string LogPropertyName = "CorrelationId";
-    private const string ActivityBaggageName = "correlation.id";
+    private const string _headerName = "X-Correlation-ID";
+    private const string _logPropertyName = "CorrelationId";
+    private const string _activityBaggageName = "correlation.id";
 
     private readonly RequestDelegate _next;
     private readonly ILogger<CorrelationMiddleware> _logger;
@@ -31,7 +31,7 @@ internal sealed class CorrelationMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        var correlationId = context.Request.Headers.TryGetValue(HeaderName, out var existing)
+        var correlationId = context.Request.Headers.TryGetValue(_headerName, out var existing)
             && !string.IsNullOrWhiteSpace(existing)
                 ? existing.ToString()
                 : Guid.CreateVersion7().ToString();
@@ -40,21 +40,21 @@ internal sealed class CorrelationMiddleware
         var activity = Activity.Current;
         if (activity is not null)
         {
-            activity.SetBaggage(ActivityBaggageName, correlationId);
-            activity.SetTag(ActivityBaggageName, correlationId);
+            activity.SetBaggage(_activityBaggageName, correlationId);
+            activity.SetTag(_activityBaggageName, correlationId);
         }
 
         // Add to response so callers can correlate client and server logs.
         context.Response.OnStarting(() =>
         {
-            context.Response.Headers[HeaderName] = correlationId;
+            context.Response.Headers[_headerName] = correlationId;
             return Task.CompletedTask;
         });
 
         // Enrich all log messages within this request scope.
         using (_logger.BeginScope(new Dictionary<string, object>
         {
-            [LogPropertyName] = correlationId,
+            [_logPropertyName] = correlationId,
         }))
         {
             await _next(context);

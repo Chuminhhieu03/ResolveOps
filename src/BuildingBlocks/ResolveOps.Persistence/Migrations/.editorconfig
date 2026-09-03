@@ -1,0 +1,4 @@
+[*.cs]
+# Disable file-scoped namespace rule for auto-generated EF migrations
+dotnet_diagnostic.IDE0161.severity = none
+dotnet_diagnostic.CA1861.severity = none

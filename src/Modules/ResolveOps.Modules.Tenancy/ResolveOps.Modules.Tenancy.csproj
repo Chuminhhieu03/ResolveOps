@@ -1,9 +1,20 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+  <ItemGroup>
+    <!--
+      Tenancy module references EF Core directly (not ResolveOps.Persistence) to avoid
+      a circular dependency: Persistence → Tenancy → Persistence.
+      See docs/assumptions.md — A-012.
+    -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\BuildingBlocks\ResolveOps.Domain\ResolveOps.Domain.csproj" />
+    <ProjectReference Include="..\..\BuildingBlocks\ResolveOps.Security\ResolveOps.Security.csproj" />
+    <ProjectReference Include="..\..\BuildingBlocks\ResolveOps.Persistence\ResolveOps.Persistence.csproj" />
+  </ItemGroup>
 
 </Project>

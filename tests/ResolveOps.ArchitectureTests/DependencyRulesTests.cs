@@ -13,12 +13,12 @@ public sealed class DependencyRulesTests
 {
     // ─── Assembly names ───────────────────────────────────────────────────────
 
-    private const string DomainAssembly = "ResolveOps.Domain";
-    private const string ApplicationAssembly = "ResolveOps.Application";
-    private const string PersistenceAssembly = "ResolveOps.Persistence";
-    private const string ApiAssembly = "ResolveOps.Api";
-    private const string WorkerAssembly = "ResolveOps.Worker";
-    private const string AppHostAssembly = "ResolveOps.AppHost";
+    private const string _domainAssembly = "ResolveOps.Domain";
+    private const string _applicationAssembly = "ResolveOps.Application";
+    private const string _persistenceAssembly = "ResolveOps.Persistence";
+    private const string _apiAssembly = "ResolveOps.Api";
+    private const string _workerAssembly = "ResolveOps.Worker";
+    private const string _appHostAssembly = "ResolveOps.AppHost";
 
     private static Types AllTypes() =>
         Types.InAssemblies(
@@ -34,8 +34,8 @@ public sealed class DependencyRulesTests
     public void Domain_ShouldNot_DependOn_Persistence()
     {
         var result = AllTypes()
-            .That().ResideInNamespaceStartingWith(DomainAssembly)
-            .ShouldNot().HaveDependencyOn(PersistenceAssembly)
+            .That().ResideInNamespaceStartingWith(_domainAssembly)
+            .ShouldNot().HaveDependencyOn(_persistenceAssembly)
             .GetResult();
 
         result.IsSuccessful.Should().BeTrue(
@@ -47,8 +47,8 @@ public sealed class DependencyRulesTests
     public void Domain_ShouldNot_DependOn_Application()
     {
         var result = AllTypes()
-            .That().ResideInNamespaceStartingWith(DomainAssembly)
-            .ShouldNot().HaveDependencyOn(ApplicationAssembly)
+            .That().ResideInNamespaceStartingWith(_domainAssembly)
+            .ShouldNot().HaveDependencyOn(_applicationAssembly)
             .GetResult();
 
         result.IsSuccessful.Should().BeTrue(
@@ -60,8 +60,8 @@ public sealed class DependencyRulesTests
     public void Domain_ShouldNot_DependOn_HostProjects()
     {
         var result = AllTypes()
-            .That().ResideInNamespaceStartingWith(DomainAssembly)
-            .ShouldNot().HaveDependencyOnAny(ApiAssembly, WorkerAssembly, AppHostAssembly)
+            .That().ResideInNamespaceStartingWith(_domainAssembly)
+            .ShouldNot().HaveDependencyOnAny(_apiAssembly, _workerAssembly, _appHostAssembly)
             .GetResult();
 
         result.IsSuccessful.Should().BeTrue(
@@ -74,8 +74,8 @@ public sealed class DependencyRulesTests
     public void Application_ShouldNot_DependOn_HostProjects()
     {
         var result = AllTypes()
-            .That().ResideInNamespaceStartingWith(ApplicationAssembly)
-            .ShouldNot().HaveDependencyOnAny(ApiAssembly, WorkerAssembly, AppHostAssembly)
+            .That().ResideInNamespaceStartingWith(_domainAssembly)
+            .ShouldNot().HaveDependencyOnAny(_apiAssembly, _workerAssembly, _appHostAssembly)
             .GetResult();
 
         result.IsSuccessful.Should().BeTrue(

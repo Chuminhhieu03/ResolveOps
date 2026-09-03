@@ -17,11 +17,17 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
       <!-- Design-time only: never deployed to production. -->
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ResolveOps.Domain\ResolveOps.Domain.csproj" />
+    <ProjectReference Include="..\ResolveOps.Security\ResolveOps.Security.csproj" />
   </ItemGroup>
 
 </Project>

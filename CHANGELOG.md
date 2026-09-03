@@ -10,7 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Phase 2 will add tenancy and identity.
+- **Phase 2: Tenancy and Identity**
+  - Added ASP.NET Core Identity with EF Core integration (`ApplicationUser`, roles, claims).
+  - Implemented JWT token generation and authentication.
+  - Added robust refresh token rotation (`RefreshTokenSession`) with family support for improved security.
+  - Added `Tenant`, `TenantSettings`, and `UserTenantMembership` entities to support multi-tenancy.
+  - Enforced tenant isolation via EF Core query filters.
+  - Implemented initial local development seeder (`DevelopmentSeeder`) for `local-dev` tenant and admin user.
+  - Wired Tenancy and Identity modules into `AppDbContext` and API endpoints.
 
 ---
 

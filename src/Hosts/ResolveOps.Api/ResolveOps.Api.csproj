@@ -1,20 +1,24 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
     <PackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" />
     <PackageReference Include="Aspire.StackExchange.Redis" />
-    <PackageReference Include="Serilog.AspNetCore" />
-    <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
+    <PackageReference Include="AspNetCore.HealthChecks.SqlServer" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\ServiceDefaults\ResolveOps.ServiceDefaults\ResolveOps.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\BuildingBlocks\ResolveOps.Security\ResolveOps.Security.csproj" />
     <ProjectReference Include="..\..\BuildingBlocks\ResolveOps.Persistence\ResolveOps.Persistence.csproj" />
+    <ProjectReference Include="..\..\Modules\ResolveOps.Modules.Identity\ResolveOps.Modules.Identity.csproj" />
+    <ProjectReference Include="..\..\Modules\ResolveOps.Modules.Tenancy\ResolveOps.Modules.Tenancy.csproj" />
+    <ProjectReference Include="..\..\ServiceDefaults\ResolveOps.ServiceDefaults\ResolveOps.ServiceDefaults.csproj" />
   </ItemGroup>
 
 </Project>
