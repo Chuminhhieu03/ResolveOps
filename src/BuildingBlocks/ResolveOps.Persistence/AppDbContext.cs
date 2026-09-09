@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using ResolveOps.Domain.Identity;
+using ResolveOps.Domain.Partners;
 using ResolveOps.Domain.Tenancy;
 using ResolveOps.Persistence.Conventions;
 
@@ -54,6 +55,12 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<TenantSettings> TenantSettings => Set<TenantSettings>();
 
+    // ── Partners ─────────────────────────────────────────────────────────────
+    public DbSet<Carrier> Carriers => Set<Carrier>();
+    public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<Location> Locations => Set<Location>();
+    public DbSet<BusinessCalendar> BusinessCalendars => Set<BusinessCalendar>();
+
     // ── Tenant filter ─────────────────────────────────────────────────────────
     private readonly Guid? _currentTenantId;
 
@@ -99,7 +106,7 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
             builder.ApplyConfigurationsFromAssembly(asm);
         }
 
-        // ── Tenant query filters (spec §19.4 — defense in depth) ──────────────
+        // ── Tenant query filters (spec §19.4 — defense in depth) ──────────────────
         builder.Entity<UserTenantMembership>()
             .HasQueryFilter(m => _currentTenantId == null || m.TenantId == _currentTenantId);
 
@@ -107,6 +114,19 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
             .HasQueryFilter(s => _currentTenantId == null || s.TenantId == _currentTenantId);
 
         // Tenant is the isolation root — no tenant filter on it.
+
+        // Partners — all entities are tenant-scoped
+        builder.Entity<Carrier>()
+            .HasQueryFilter(c => _currentTenantId == null || c.TenantId == _currentTenantId);
+
+        builder.Entity<Customer>()
+            .HasQueryFilter(c => _currentTenantId == null || c.TenantId == _currentTenantId);
+
+        builder.Entity<Location>()
+            .HasQueryFilter(l => _currentTenantId == null || l.TenantId == _currentTenantId);
+
+        builder.Entity<BusinessCalendar>()
+            .HasQueryFilter(bc => _currentTenantId == null || bc.TenantId == _currentTenantId);
 
         // ── Snake_case column names ────────────────────────────────────────────
         // Applied last so configurations' explicit column names are preserved.

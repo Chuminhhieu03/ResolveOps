@@ -38,6 +38,14 @@ public static class AuthorizationPolicies
     public const string RequireCreateShipment = "require_create_shipment";
     public const string RequireViewShipments = "require_view_shipments";
 
+    public const string RequireViewCarriers = "require_view_carriers";
+    public const string RequireManageCarriers = "require_manage_carriers";
+    public const string RequireViewCustomers = "require_view_customers";
+    public const string RequireManageCustomers = "require_manage_customers";
+    public const string RequireViewLocations = "require_view_locations";
+    public const string RequireManageLocations = "require_manage_locations";
+    public const string RequireManageBusinessCalendars = "require_manage_business_calendars";
+
     /// <summary>
     /// Registers all permission-based authorization policies.
     /// Call from Program.cs or module DI registration.
@@ -64,7 +72,14 @@ public static class AuthorizationPolicies
             .AddPolicy(RequireUploadEvidence, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanUploadEvidence))
             .AddPolicy(RequireDownloadEvidence, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanDownloadEvidence))
             .AddPolicy(RequireCreateShipment, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanCreateShipment))
-            .AddPolicy(RequireViewShipments, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanViewShipments));
+            .AddPolicy(RequireViewShipments, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanViewShipments))
+            .AddPolicy(RequireViewCarriers, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanViewCarriers))
+            .AddPolicy(RequireManageCarriers, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanManageCarriers))
+            .AddPolicy(RequireViewCustomers, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanViewCustomers))
+            .AddPolicy(RequireManageCustomers, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanManageCustomers))
+            .AddPolicy(RequireViewLocations, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanViewLocations))
+            .AddPolicy(RequireManageLocations, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanManageLocations))
+            .AddPolicy(RequireManageBusinessCalendars, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanManageBusinessCalendars));
 
         return services;
     }

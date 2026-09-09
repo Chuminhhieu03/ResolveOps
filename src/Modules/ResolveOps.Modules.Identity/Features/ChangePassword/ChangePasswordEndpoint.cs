@@ -2,7 +2,6 @@ using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
-using ResolveOps.Security;
 
 namespace ResolveOps.Modules.Identity.Features.ChangePassword;
 

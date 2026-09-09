@@ -6,6 +6,7 @@ using ResolveOps.Api;
 using ResolveOps.Api.Infrastructure;
 using ResolveOps.Domain.Identity;
 using ResolveOps.Modules.Identity;
+using ResolveOps.Modules.Partners;
 using ResolveOps.Modules.Tenancy;
 using ResolveOps.Persistence;
 using ResolveOps.Security;
@@ -76,6 +77,7 @@ builder.Services.AddSingleton<IAuthorizationHandler, TenantMembershipHandler>();
 // ── Modules ───────────────────────────────────────────────────────────────
 builder.Services.AddIdentityModule();
 builder.Services.AddTenancyModule();
+builder.Services.AddPartnersModule();
 
 // ── Health Checks ─────────────────────────────────────────────────────────
 builder.Services
@@ -118,6 +120,7 @@ app.MapGet("/api/version", () => new
 
 app.MapIdentityEndpoints();
 app.MapTenancyEndpoints();
+app.MapPartnersEndpoints();
 
 // ─────────────────────────────────────────────────────────────────────────
 

@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Phase 3 (Partners & Locations)** implementation:
+  - Added `Carrier`, `Customer`, `Location`, and `BusinessCalendar` aggregates/entities.
+  - Added full Vertical Slice architecture for CRUD operations with `FluentValidation` and Minimal APIs.
+  - Implemented Domain logic for managing Business Calendar Holidays.
+  - Entity Framework Core configurations and Tenant query filters for data isolation.
+  - Optimistic concurrency (Version tokens) across Partners modules.
+  - Registered new endpoints and permission policies in `ResolveOps.Security`.
+  - Added `AddPartnersAndCalendar` EF Core migration.
+
+## [2026-09-03]
 - **Phase 2: Tenancy and Identity**
   - Added ASP.NET Core Identity with EF Core integration (`ApplicationUser`, roles, claims).
   - Implemented JWT token generation and authentication.

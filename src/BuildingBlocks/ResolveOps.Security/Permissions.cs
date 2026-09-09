@@ -42,7 +42,15 @@ public static class Permissions
     public const string CanViewShipments = "CanViewShipments";
     public const string CanCancelShipment = "CanCancelShipment";
 
-    /// <summary>
+    // ── Partners ─────────────────────────────────────────────────────────────
+    public const string CanViewCarriers = "CanViewCarriers";
+    public const string CanManageCarriers = "CanManageCarriers";
+    public const string CanViewCustomers = "CanViewCustomers";
+    public const string CanManageCustomers = "CanManageCustomers";
+    public const string CanViewLocations = "CanViewLocations";
+    public const string CanManageLocations = "CanManageLocations";
+    public const string CanManageBusinessCalendars = "CanManageBusinessCalendars";
+
     /// Maps each role to its set of granted permissions.
     /// Permissions are encoded as JWT claims at login time.
     /// </summary>
@@ -58,7 +66,12 @@ public static class Permissions
                 CanRecordRecovery, CanWriteOffClaim,
                 CanUploadEvidence, CanDownloadEvidence,
                 CanCreateShipment, CanViewShipments, CanCancelShipment,
+                CanViewCarriers, CanManageCarriers,
+                CanViewCustomers, CanManageCustomers,
+                CanViewLocations, CanManageLocations,
+                CanManageBusinessCalendars,
             ],
+
             [Roles.OperationsManager] =
             [
                 CanViewCases, CanTriageCase, CanAssignCase, CanUpdateCase, CanCloseCase, CanCancelCase,
@@ -66,14 +79,21 @@ public static class Permissions
                 CanViewClaims, CanCreateClaim,
                 CanUploadEvidence, CanDownloadEvidence,
                 CanViewShipments,
+                CanViewCarriers, CanManageCarriers,
+                CanViewCustomers, CanManageCustomers,
+                CanViewLocations, CanManageLocations,
+                CanManageBusinessCalendars,
             ],
+
             [Roles.LogisticsCoordinator] =
             [
                 CanViewCases, CanTriageCase, CanUpdateCase,
                 CanViewClaims,
                 CanUploadEvidence, CanDownloadEvidence,
                 CanViewShipments,
+                CanViewCarriers, CanViewCustomers, CanViewLocations,
             ],
+
             [Roles.ExceptionSpecialist] =
             [
                 CanViewCases, CanTriageCase, CanAssignCase, CanUpdateCase, CanCloseCase, CanCancelCase,
@@ -81,7 +101,9 @@ public static class Permissions
                 CanViewClaims, CanCreateClaim,
                 CanUploadEvidence, CanDownloadEvidence,
                 CanViewShipments,
+                CanViewCarriers, CanViewCustomers, CanViewLocations,
             ],
+
             [Roles.ClaimsSpecialist] =
             [
                 CanViewCases,
@@ -89,7 +111,9 @@ public static class Permissions
                 CanRecordRecovery,
                 CanUploadEvidence, CanDownloadEvidence,
                 CanViewShipments,
+                CanViewCarriers, CanViewCustomers, CanViewLocations,
             ],
+
             [Roles.CustomerService] =
             [
                 CanViewCases,
