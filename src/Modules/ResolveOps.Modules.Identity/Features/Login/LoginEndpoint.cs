@@ -2,12 +2,13 @@ using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using ResolveOps.Application;
 
 namespace ResolveOps.Modules.Identity.Features.Login;
 
-public static class LoginEndpoint
+public sealed class LoginEndpoint : IEndpoint
 {
-    public static void MapEndpoint(IEndpointRouteBuilder app)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
         app.MapPost("/api/identity/login", async (
             LoginCommand command,
@@ -49,10 +50,7 @@ public static class LoginEndpoint
 
                     return Results.Ok(new LoginResponse(data.AccessToken));
                 },
-                onFailure: error => Results.Problem(
-                    statusCode: StatusCodes.Status401Unauthorized,
-                    title: "Authentication Failed",
-                    detail: error.Message)
+                onFailure: error => error.ToProblemDetails()
             );
         })
         .WithName("Login")

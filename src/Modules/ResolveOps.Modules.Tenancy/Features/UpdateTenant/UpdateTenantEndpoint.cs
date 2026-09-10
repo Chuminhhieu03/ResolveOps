@@ -2,13 +2,14 @@ using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using ResolveOps.Application;
 using ResolveOps.Security;
 
 namespace ResolveOps.Modules.Tenancy.Features.UpdateTenant;
 
-public static class UpdateTenantEndpoint
+public sealed class UpdateTenantEndpoint : IEndpoint
 {
-    public static void MapEndpoint(IEndpointRouteBuilder app)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
         app.MapPut("/api/tenants/current", async (
             UpdateTenantCommand command,
@@ -26,12 +27,7 @@ public static class UpdateTenantEndpoint
 
             return result.Match(
                 onSuccess: () => Results.NoContent(),
-                onFailure: error => error.Code switch
-                {
-                    "CONCURRENCY_CONFLICT" => Results.Problem(statusCode: StatusCodes.Status409Conflict, title: "Concurrency Conflict", detail: error.Message),
-                    "RESOURCE_NOT_FOUND" => Results.NotFound(),
-                    _ => Results.Problem(statusCode: StatusCodes.Status400BadRequest, title: "Update Failed", detail: error.Message)
-                }
+                onFailure: error => error.ToProblemDetails()
             );
         })
         .WithName("UpdateCurrentTenant")

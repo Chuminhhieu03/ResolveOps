@@ -8,7 +8,7 @@ namespace ResolveOps.Domain.Partners;
 /// - An inactive carrier cannot be assigned to new shipment legs.
 /// - Version is used for optimistic concurrency.
 /// </summary>
-public sealed class Carrier
+public sealed class Carrier : IAuditableEntity, IHasConcurrencyStamp
 {
     public Guid Id { get; private set; }
     public Guid TenantId { get; private set; }
@@ -35,11 +35,13 @@ public sealed class Carrier
     /// </summary>
     public string ClaimSubmissionChannel { get; private set; } = ResolveOps.Domain.Partners.ClaimSubmissionChannel.Manual;
 
-    public DateTimeOffset CreatedAtUtc { get; private set; }
-    public DateTimeOffset UpdatedAtUtc { get; private set; }
+    public DateTimeOffset CreatedAtUtc { get; set; }
+    public string? CreatedBy { get; set; }
+    public DateTimeOffset? UpdatedAtUtc { get; set; }
+    public string? UpdatedBy { get; set; }
 
     /// <summary>Optimistic concurrency token (spec §15.1).</summary>
-    public long Version { get; private set; }
+    public string ConcurrencyStamp { get; set; } = Guid.NewGuid().ToString("N");
 
     // EF Core requires a parameterless constructor.
     private Carrier() { }
@@ -68,7 +70,7 @@ public sealed class Carrier
             ClaimSubmissionChannel = claimSubmissionChannel,
             CreatedAtUtc = now,
             UpdatedAtUtc = now,
-            Version = 1,
+            ConcurrencyStamp = Guid.NewGuid().ToString("N"),
         };
     }
 
@@ -86,7 +88,7 @@ public sealed class Carrier
         ContactEmail = contactEmail?.Trim();
         ClaimSubmissionChannel = claimSubmissionChannel;
         UpdatedAtUtc = timeProvider.GetUtcNow();
-        Version++;
+        ConcurrencyStamp = Guid.NewGuid().ToString("N");
     }
 
     /// <summary>
@@ -96,7 +98,7 @@ public sealed class Carrier
     {
         Status = CarrierStatus.Active;
         UpdatedAtUtc = timeProvider.GetUtcNow();
-        Version++;
+        ConcurrencyStamp = Guid.NewGuid().ToString("N");
     }
 
     /// <summary>
@@ -107,7 +109,7 @@ public sealed class Carrier
     {
         Status = CarrierStatus.Inactive;
         UpdatedAtUtc = timeProvider.GetUtcNow();
-        Version++;
+        ConcurrencyStamp = Guid.NewGuid().ToString("N");
     }
 
     public bool IsActive => Status == CarrierStatus.Active;

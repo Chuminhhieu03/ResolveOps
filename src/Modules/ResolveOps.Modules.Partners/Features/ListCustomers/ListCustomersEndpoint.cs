@@ -1,13 +1,14 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using ResolveOps.Application;
 using ResolveOps.Security;
 
 namespace ResolveOps.Modules.Partners.Features.ListCustomers;
 
-public static class ListCustomersEndpoint
+public sealed class ListCustomersEndpoint : IEndpoint
 {
-    public static void MapEndpoint(IEndpointRouteBuilder app)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
         app.MapGet("/api/customers", async (
             ListCustomersHandler handler,
@@ -21,10 +22,7 @@ public static class ListCustomersEndpoint
 
             return result.Match(
                 onSuccess: data => Results.Ok(data),
-                onFailure: error => Results.Problem(
-                    statusCode: StatusCodes.Status500InternalServerError,
-                    title: "List Customers Failed",
-                    detail: error.Message));
+                onFailure: error => error.ToProblemDetails());
         })
         .WithName("ListCustomers")
         .WithTags("Customers")

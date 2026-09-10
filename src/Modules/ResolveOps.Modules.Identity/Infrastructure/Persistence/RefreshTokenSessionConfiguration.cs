@@ -32,8 +32,9 @@ public sealed class RefreshTokenSessionConfiguration : IEntityTypeConfiguration<
         builder.Property(s => s.CreatedIpHash).HasMaxLength(200);
         builder.Property(s => s.UserAgentHash).HasMaxLength(200);
 
-        builder.Property(s => s.Version)
+        builder.Property(s => s.ConcurrencyStamp)
             .IsConcurrencyToken()
+            .HasMaxLength(36)
             .IsRequired();
 
         // Lookup by token hash (login/refresh flow)

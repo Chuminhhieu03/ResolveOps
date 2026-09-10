@@ -5,4 +5,4 @@ public sealed record UpdateCustomerCommand(
     string Name,
     string Priority,
     string? DefaultTimezone,
-    long ExpectedVersion);
+    string ConcurrencyStamp);

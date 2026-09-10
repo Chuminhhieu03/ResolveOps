@@ -26,7 +26,7 @@ internal sealed class UpdateLocationHandler
         }
 
         // Apply EF's original value for optimistic concurrency
-        _dbContext.Entry(location).Property(l => l.Version).OriginalValue = command.ExpectedVersion;
+        _dbContext.Entry(location).Property(l => l.ConcurrencyStamp).OriginalValue = command.ConcurrencyStamp;
 
         location.Update(
             command.Name,

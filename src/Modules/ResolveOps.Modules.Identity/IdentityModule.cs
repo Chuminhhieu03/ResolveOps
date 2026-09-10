@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using ResolveOps.Application;
 using ResolveOps.Modules.Identity.Features.Audit;
 using ResolveOps.Modules.Identity.Features.Auth;
 using ResolveOps.Modules.Identity.Features.ChangePassword;
@@ -19,35 +20,26 @@ public static class IdentityModule
 {
     public static IServiceCollection AddIdentityModule(this IServiceCollection services)
     {
-        // Register EF configuration assembly with the shared Persistence layer
-        AppDbContext.AddConfigurationAssembly(typeof(IdentityModule).Assembly);
+        var assembly = typeof(IdentityModule).Assembly;
+
+        AppDbContext.AddConfigurationAssembly(assembly);
 
         // Core services
         services.AddScoped<ITenantContext, HttpTenantContext>();
         services.AddSingleton<ITokenGenerator, TokenGenerator>();
         services.AddSingleton<AuditService>();
 
-        // Handlers
-        services.AddScoped<LoginHandler>();
-        services.AddScoped<RefreshHandler>();
-        services.AddScoped<LogoutHandler>();
-        services.AddScoped<GetCurrentUserHandler>();
-        services.AddScoped<ChangePasswordHandler>();
-
-        // Validators
-        services.AddValidatorsFromAssemblyContaining<LoginValidator>(ServiceLifetime.Scoped);
+        // Auto-discovery
+        services.AddHandlersFromAssembly(assembly);
+        services.AddEndpointsFromAssembly(assembly);
+        services.AddValidatorsFromAssembly(assembly, ServiceLifetime.Scoped);
 
         return services;
     }
 
     public static IEndpointRouteBuilder MapIdentityEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        LoginEndpoint.MapEndpoint(endpoints);
-        RefreshEndpoint.MapEndpoint(endpoints);
-        LogoutEndpoint.MapEndpoint(endpoints);
-        GetCurrentUserEndpoint.MapEndpoint(endpoints);
-        ChangePasswordEndpoint.MapEndpoint(endpoints);
-
+        endpoints.MapEndpoints();
         return endpoints;
     }
 }

@@ -1,6 +1,8 @@
+using EntityFramework.Exceptions.SqlServer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using ResolveOps.Domain;
 using ResolveOps.Domain.Identity;
 using ResolveOps.Domain.Partners;
 using ResolveOps.Domain.Tenancy;
@@ -61,12 +63,17 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
     public DbSet<Location> Locations => Set<Location>();
     public DbSet<BusinessCalendar> BusinessCalendars => Set<BusinessCalendar>();
 
+    // ── System ───────────────────────────────────────────────────────────────
+    public DbSet<ErrorTemplate> ErrorTemplates => Set<ErrorTemplate>();
+
     // ── Tenant filter ─────────────────────────────────────────────────────────
     private readonly Guid? _currentTenantId;
+    private readonly IEnumerable<Microsoft.EntityFrameworkCore.Diagnostics.IInterceptor> _interceptors;
 
     /// <summary>Primary constructor — no tenant filter (design-time factory, migrations, seeding).</summary>
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
+        _interceptors = [];
     }
 
     /// <summary>
@@ -74,10 +81,18 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
     /// Registered via factory in DI so each HTTP request gets the correct tenant ID
     /// from the resolved ITenantContext.
     /// </summary>
-    public AppDbContext(DbContextOptions<AppDbContext> options, Guid? tenantId)
+    public AppDbContext(DbContextOptions<AppDbContext> options, Guid? tenantId, IEnumerable<Microsoft.EntityFrameworkCore.Diagnostics.IInterceptor> interceptors)
         : base(options)
     {
         _currentTenantId = tenantId;
+        _interceptors = interceptors;
+    }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        optionsBuilder.UseExceptionProcessor();
+        optionsBuilder.AddInterceptors(_interceptors);
+        base.OnConfiguring(optionsBuilder);
     }
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)

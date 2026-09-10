@@ -23,7 +23,7 @@ and adds current phase status. When in conflict, the spec wins.
 | **Current phase** | Phase 4 — Shipment domain |
 | **Phase status** | ⬜ Not started |
 | **Next phase** | Phase 5 — Messaging foundation: outbox, inbox, RabbitMQ |
-| **Last updated** | 2026-09-09 |
+| **Last updated** | 2026-09-10 |
 
 ### Phase 0 deliverables completed
 
@@ -34,7 +34,7 @@ and adds current phase status. When in conflict, the spec wins.
 - [x] Solution file `ResolveOps.slnx` with all empty project stubs
 - [x] `AGENTS.md`, `CHANGELOG.md`, `README.md`
 - [x] `docs/glossary.md`, `docs/assumptions.md`, `docs/test-strategy.md`
-- [x] ADR-001 through ADR-005, ADR-021, ADR-022
+- [x] ADR-001 through ADR-006, ADR-021, ADR-022
 - [x] All 5 architecture diagrams (Mermaid)
 - [x] `dotnet build` passes with 0 errors, 0 warnings
 - [x] No business feature code
@@ -139,6 +139,8 @@ The agent MUST NOT:
 - Create placeholder methods (`TODO`, `NotImplementedException`, fake returns) to pass builds.
 - Add microservices, Kubernetes, Azure proprietary services, MassTransit, or Kafka.
 - Add AI features before Phase 18.
+- *Note:* Rule 10 (no reflection for auto-discovery) is overridden by ADR-006. Reflection IS allowed for endpoint/handler auto-registration.
+- *Note:* Optimistic concurrency uses `string ConcurrencyStamp` (overriding `long Version` via ADR-006).
 
 ---
 

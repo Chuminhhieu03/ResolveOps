@@ -1,10 +1,11 @@
 namespace ResolveOps.Domain;
 
-public sealed record DomainError(string Code, string Message)
+public sealed record DomainError(string Code, string Message = "", params object[] Arguments)
 {
-    public static readonly DomainError ValidationFailed = new("VALIDATION_FAILED", "A validation error occurred.");
-    public static readonly DomainError ResourceNotFound = new("RESOURCE_NOT_FOUND", "The requested resource was not found.");
-    public static readonly DomainError Forbidden = new("FORBIDDEN", "You do not have permission to perform this action.");
-    public static readonly DomainError ConcurrencyConflict = new("CONCURRENCY_CONFLICT", "The resource was modified by another user.");
-    public static readonly DomainError InvalidStateTransition = new("INVALID_STATE_TRANSITION", "The requested state transition is invalid.");
+    public static DomainError Failure(string code, string message) => new(code, message);
+
+    public static DomainError ResourceNotFound => new("ERR_RESOURCE_NOT_FOUND", "Resource not found.");
+    public static DomainError ConcurrencyConflict => new("ERR_CONCURRENCY_CONFLICT", "Concurrency conflict.");
+    public static DomainError ValidationFailed => new("ERR_VALIDATION_FAILED", "Validation failed.");
+    public static DomainError Forbidden => new("ERR_FORBIDDEN", "Forbidden.");
 }

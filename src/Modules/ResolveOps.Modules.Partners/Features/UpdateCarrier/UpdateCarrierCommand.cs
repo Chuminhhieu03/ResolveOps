@@ -7,4 +7,4 @@ public sealed record UpdateCarrierCommand(
     string? DefaultTimezone,
     string? ContactEmail,
     string ClaimSubmissionChannel,
-    long ExpectedVersion);
+    string ConcurrencyStamp);

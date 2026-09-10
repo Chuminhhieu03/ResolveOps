@@ -2,15 +2,16 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using ResolveOps.Application;
 using ResolveOps.Security;
 
 namespace ResolveOps.Modules.Tenancy.Features.UpdateUserRoles;
 
-public static class UpdateUserRolesEndpoint
+public sealed class UpdateUserRolesEndpoint : IEndpoint
 {
-    public static void MapEndpoint(IEndpointRouteBuilder endpoints)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        endpoints.MapPut("/api/tenancy/users/{userId:guid}/roles", async (
+        app.MapPut("/api/tenancy/users/{userId:guid}/roles", async (
             Guid userId,
             [FromBody] UpdateUserRolesCommand command,
             [FromServices] UpdateUserRolesHandler handler,

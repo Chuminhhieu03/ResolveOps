@@ -24,7 +24,7 @@ public sealed class UpdateCustomerValidator : AbstractValidator<UpdateCustomerCo
             .WithMessage("DefaultTimezone must be a valid IANA timezone identifier.")
             .When(x => x.DefaultTimezone is not null);
 
-        RuleFor(x => x.ExpectedVersion).GreaterThan(0);
+        RuleFor(x => x.ConcurrencyStamp).NotEmpty();
     }
 
     private static bool IsValidTimezone(string id)

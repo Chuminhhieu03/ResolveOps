@@ -1,16 +1,17 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using ResolveOps.Application;
 using Microsoft.AspNetCore.Mvc;
 using ResolveOps.Security;
 
 namespace ResolveOps.Modules.Tenancy.Features.ListTenantUsers;
 
-public static class ListTenantUsersEndpoint
+public sealed class ListTenantUsersEndpoint : IEndpoint
 {
-    public static void MapEndpoint(IEndpointRouteBuilder endpoints)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        endpoints.MapGet("/api/tenancy/users", async (
+        app.MapGet("/api/tenancy/users", async (
             [FromServices] ListTenantUsersHandler handler,
             CancellationToken cancellationToken) =>
         {

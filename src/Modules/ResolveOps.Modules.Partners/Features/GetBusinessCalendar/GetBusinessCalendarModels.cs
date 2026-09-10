@@ -12,8 +12,8 @@ public sealed record BusinessCalendarResponse(
     string Status,
     IReadOnlyList<BusinessCalendarHolidayResponse> Holidays,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset UpdatedAtUtc,
-    long Version);
+    DateTimeOffset? UpdatedAtUtc,
+    string ConcurrencyStamp);
 
 public sealed record BusinessCalendarHolidayResponse(
     Guid Id,

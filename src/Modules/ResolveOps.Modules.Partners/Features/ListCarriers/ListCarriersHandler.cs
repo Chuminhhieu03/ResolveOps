@@ -46,7 +46,7 @@ internal sealed class ListCarriersHandler
                 c.ClaimSubmissionChannel,
                 c.CreatedAtUtc,
                 c.UpdatedAtUtc,
-                c.Version))
+                c.ConcurrencyStamp))
             .ToListAsync(cancellationToken);
 
         return new ListCarriersResponse(items, totalCount, page, pageSize);

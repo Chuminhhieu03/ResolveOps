@@ -26,7 +26,7 @@ internal sealed class UpdateCarrierHandler
         }
 
         // Apply EF's original value for optimistic concurrency
-        _dbContext.Entry(carrier).Property(c => c.Version).OriginalValue = command.ExpectedVersion;
+        _dbContext.Entry(carrier).Property(c => c.ConcurrencyStamp).OriginalValue = command.ConcurrencyStamp;
 
         carrier.Update(
             command.Name,

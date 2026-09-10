@@ -1,13 +1,14 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using ResolveOps.Application;
 using ResolveOps.Security;
 
 namespace ResolveOps.Modules.Partners.Features.ListLocations;
 
-public static class ListLocationsEndpoint
+public sealed class ListLocationsEndpoint : IEndpoint
 {
-    public static void MapEndpoint(IEndpointRouteBuilder app)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
         app.MapGet("/api/locations", async (
             ListLocationsHandler handler,
@@ -20,10 +21,7 @@ public static class ListLocationsEndpoint
 
             return result.Match(
                 onSuccess: data => Results.Ok(data),
-                onFailure: error => Results.Problem(
-                    statusCode: StatusCodes.Status500InternalServerError,
-                    title: "List Locations Failed",
-                    detail: error.Message));
+                onFailure: error => error.ToProblemDetails());
         })
         .WithName("ListLocations")
         .WithTags("Locations")

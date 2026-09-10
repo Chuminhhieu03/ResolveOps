@@ -33,7 +33,7 @@ public sealed class UpdateCarrierValidator : AbstractValidator<UpdateCarrierComm
             .Must(ClaimSubmissionChannel.IsValid)
             .WithMessage($"ClaimSubmissionChannel must be one of: {string.Join(", ", ClaimSubmissionChannel.All)}.");
 
-        RuleFor(x => x.ExpectedVersion).GreaterThan(0);
+        RuleFor(x => x.ConcurrencyStamp).NotEmpty();
     }
 
     private static bool IsValidTimezone(string id)

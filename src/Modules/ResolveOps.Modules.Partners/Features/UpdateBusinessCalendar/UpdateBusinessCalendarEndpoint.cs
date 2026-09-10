@@ -2,13 +2,14 @@ using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using ResolveOps.Application;
 using ResolveOps.Security;
 
 namespace ResolveOps.Modules.Partners.Features.UpdateBusinessCalendar;
 
-public static class UpdateBusinessCalendarEndpoint
+public sealed class UpdateBusinessCalendarEndpoint : IEndpoint
 {
-    public static void MapEndpoint(IEndpointRouteBuilder app)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
         app.MapPut("/api/business-calendars/{calendarId:guid}", async (
             Guid calendarId,
@@ -24,7 +25,7 @@ public static class UpdateBusinessCalendarEndpoint
                 request.WorkingDaysMask,
                 request.WorkingStart,
                 request.WorkingEnd,
-                request.ExpectedVersion);
+                request.ConcurrencyStamp);
 
             var validationResult = await validator.ValidateAsync(command, cancellationToken);
             if (!validationResult.IsValid)
@@ -36,22 +37,7 @@ public static class UpdateBusinessCalendarEndpoint
 
             return result.Match(
                 onSuccess: () => Results.NoContent(),
-                onFailure: error => error.Code switch
-                {
-                    "CONCURRENCY_CONFLICT" => Results.Problem(
-                        statusCode: StatusCodes.Status409Conflict,
-                        title: "Concurrency Conflict",
-                        detail: error.Message),
-                    "VALIDATION_FAILED" => Results.Problem(
-                        statusCode: StatusCodes.Status409Conflict,
-                        title: "Validation Failed",
-                        detail: error.Message),
-                    "RESOURCE_NOT_FOUND" => Results.NotFound(),
-                    _ => Results.Problem(
-                        statusCode: StatusCodes.Status400BadRequest,
-                        title: "Update Business Calendar Failed",
-                        detail: error.Message),
-                });
+                onFailure: error => error.ToProblemDetails());
         })
         .WithName("UpdateBusinessCalendar")
         .WithTags("BusinessCalendars")
@@ -69,4 +55,4 @@ public sealed record UpdateBusinessCalendarRequest(
     int WorkingDaysMask,
     TimeOnly WorkingStart,
     TimeOnly WorkingEnd,
-    long ExpectedVersion);
+    string ConcurrencyStamp);

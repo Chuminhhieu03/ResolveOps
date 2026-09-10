@@ -6,6 +6,8 @@ namespace ResolveOps.Domain;
 /// </summary>
 public interface IAuditableEntity
 {
-    DateTimeOffset CreatedAtUtc { get; }
-    DateTimeOffset UpdatedAtUtc { get; }
+    DateTimeOffset CreatedAtUtc { get; set; }
+    string? CreatedBy { get; set; }
+    DateTimeOffset? UpdatedAtUtc { get; set; }
+    string? UpdatedBy { get; set; }
 }

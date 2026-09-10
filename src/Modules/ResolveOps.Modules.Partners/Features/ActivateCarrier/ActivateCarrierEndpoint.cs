@@ -1,13 +1,14 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using ResolveOps.Application;
 using ResolveOps.Security;
 
 namespace ResolveOps.Modules.Partners.Features.ActivateCarrier;
 
-public static class ActivateCarrierEndpoint
+public sealed class ActivateCarrierEndpoint : IEndpoint
 {
-    public static void MapEndpoint(IEndpointRouteBuilder app)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
         app.MapPost("/api/carriers/{carrierId:guid}/activate", async (
             Guid carrierId,
@@ -18,14 +19,7 @@ public static class ActivateCarrierEndpoint
 
             return result.Match(
                 onSuccess: () => Results.NoContent(),
-                onFailure: error => error.Code switch
-                {
-                    "RESOURCE_NOT_FOUND" => Results.NotFound(),
-                    _ => Results.Problem(
-                        statusCode: StatusCodes.Status400BadRequest,
-                        title: "Activate Carrier Failed",
-                        detail: error.Message),
-                });
+                onFailure: error => error.ToProblemDetails());
         })
         .WithName("ActivateCarrier")
         .WithTags("Carriers")

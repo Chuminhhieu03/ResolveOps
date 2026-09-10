@@ -54,6 +54,7 @@ The agent MUST:
 15. Use cancellation tokens for all I/O operations.
 16. Use structured logs. Do not log access tokens, refresh tokens, document contents, personally identifiable information, or secrets.
 17. Finish one vertical slice completely—endpoint, validation, business logic, persistence, authorization, telemetry, and tests—before opening several incomplete slices.
+18. *(Added via ADR-006)* Use `string ConcurrencyStamp` instead of `long Version` for optimistic concurrency (overriding §15.1). Reflection is allowed for Auto-discovery of endpoints and handlers (overriding Rule 10).
 
 The agent MUST NOT:
 

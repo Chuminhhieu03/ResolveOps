@@ -1,13 +1,14 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using ResolveOps.Application;
 using ResolveOps.Security;
 
 namespace ResolveOps.Modules.Identity.Features.GetCurrentUser;
 
-public static class GetCurrentUserEndpoint
+public sealed class GetCurrentUserEndpoint : IEndpoint
 {
-    public static void MapEndpoint(IEndpointRouteBuilder app)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
         app.MapGet("/api/identity/me", async (
             GetCurrentUserHandler handler,
@@ -18,10 +19,7 @@ public static class GetCurrentUserEndpoint
 
             return result.Match(
                 onSuccess: data => Results.Ok(data),
-                onFailure: error => Results.Problem(
-                    statusCode: StatusCodes.Status400BadRequest,
-                    title: "Failed to get user profile",
-                    detail: error.Message)
+                onFailure: error => error.ToProblemDetails()
             );
         })
         .WithName("GetCurrentUser")

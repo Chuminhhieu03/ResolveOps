@@ -2,13 +2,14 @@ using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using ResolveOps.Application;
 using ResolveOps.Security;
 
 namespace ResolveOps.Modules.Partners.Features.UpdateCarrier;
 
-public static class UpdateCarrierEndpoint
+public sealed class UpdateCarrierEndpoint : IEndpoint
 {
-    public static void MapEndpoint(IEndpointRouteBuilder app)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
         app.MapPut("/api/carriers/{carrierId:guid}", async (
             Guid carrierId,
@@ -24,7 +25,7 @@ public static class UpdateCarrierEndpoint
                 request.DefaultTimezone,
                 request.ContactEmail,
                 request.ClaimSubmissionChannel,
-                request.ExpectedVersion);
+                request.ConcurrencyStamp);
 
             var validationResult = await validator.ValidateAsync(command, cancellationToken);
             if (!validationResult.IsValid)
@@ -36,18 +37,7 @@ public static class UpdateCarrierEndpoint
 
             return result.Match(
                 onSuccess: () => Results.NoContent(),
-                onFailure: error => error.Code switch
-                {
-                    "CONCURRENCY_CONFLICT" => Results.Problem(
-                        statusCode: StatusCodes.Status409Conflict,
-                        title: "Concurrency Conflict",
-                        detail: error.Message),
-                    "RESOURCE_NOT_FOUND" => Results.NotFound(),
-                    _ => Results.Problem(
-                        statusCode: StatusCodes.Status400BadRequest,
-                        title: "Update Carrier Failed",
-                        detail: error.Message),
-                });
+                onFailure: error => error.ToProblemDetails());
         })
         .WithName("UpdateCarrier")
         .WithTags("Carriers")
@@ -66,4 +56,4 @@ public sealed record UpdateCarrierRequest(
     string? DefaultTimezone,
     string? ContactEmail,
     string ClaimSubmissionChannel,
-    long ExpectedVersion);
+    string ConcurrencyStamp);

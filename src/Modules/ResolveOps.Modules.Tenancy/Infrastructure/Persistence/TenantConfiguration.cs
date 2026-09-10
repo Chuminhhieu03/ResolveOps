@@ -36,10 +36,13 @@ public sealed class TenantConfiguration : IEntityTypeConfiguration<Tenant>
             .IsRequired();
 
         builder.Property(t => t.CreatedAtUtc).IsRequired();
-        builder.Property(t => t.UpdatedAtUtc).IsRequired();
+        builder.Property(t => t.CreatedBy).HasMaxLength(255);
+        builder.Property(t => t.UpdatedAtUtc);
+        builder.Property(t => t.UpdatedBy).HasMaxLength(255);
 
-        builder.Property(t => t.Version)
+        builder.Property(t => t.ConcurrencyStamp)
             .IsConcurrencyToken()
+            .HasMaxLength(36)
             .IsRequired();
 
         // spec §15.2 — code is globally unique (not tenant-scoped: Tenant IS the isolation boundary)

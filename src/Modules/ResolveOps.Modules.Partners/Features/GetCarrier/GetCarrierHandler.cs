@@ -38,6 +38,6 @@ internal sealed class GetCarrierHandler
             carrier.ClaimSubmissionChannel,
             carrier.CreatedAtUtc,
             carrier.UpdatedAtUtc,
-            carrier.Version);
+            carrier.ConcurrencyStamp);
     }
 }

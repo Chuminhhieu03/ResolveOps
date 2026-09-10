@@ -14,5 +14,5 @@ public sealed record LocationResponse(
     decimal? Latitude,
     decimal? Longitude,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset UpdatedAtUtc,
-    long Version);
+    DateTimeOffset? UpdatedAtUtc,
+    string ConcurrencyStamp);

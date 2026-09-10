@@ -2,15 +2,16 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using ResolveOps.Application;
 using ResolveOps.Security;
 
 namespace ResolveOps.Modules.Tenancy.Features.DeactivateUser;
 
-public static class DeactivateUserEndpoint
+public sealed class DeactivateUserEndpoint : IEndpoint
 {
-    public static void MapEndpoint(IEndpointRouteBuilder endpoints)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        endpoints.MapPost("/api/tenancy/users/{userId:guid}/deactivate", async (
+        app.MapPost("/api/tenancy/users/{userId:guid}/deactivate", async (
             Guid userId,
             [FromServices] DeactivateUserHandler handler,
             CancellationToken cancellationToken) =>

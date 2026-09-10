@@ -4,4 +4,4 @@ public sealed record UpdateTenantCommand(
     string Name,
     string DefaultTimezone,
     string DefaultCurrency,
-    long ExpectedVersion);
+    string ConcurrencyStamp);

@@ -8,5 +8,5 @@ public sealed record CustomerResponse(
     string? DefaultTimezone,
     string Status,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset UpdatedAtUtc,
-    long Version);
+    DateTimeOffset? UpdatedAtUtc,
+    string ConcurrencyStamp);

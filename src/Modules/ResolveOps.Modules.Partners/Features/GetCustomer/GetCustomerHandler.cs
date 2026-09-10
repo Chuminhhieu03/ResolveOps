@@ -33,6 +33,6 @@ internal sealed class GetCustomerHandler
             customer.Status,
             customer.CreatedAtUtc,
             customer.UpdatedAtUtc,
-            customer.Version);
+            customer.ConcurrencyStamp);
     }
 }

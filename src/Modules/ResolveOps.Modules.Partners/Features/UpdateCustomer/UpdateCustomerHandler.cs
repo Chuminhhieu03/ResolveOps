@@ -26,7 +26,7 @@ internal sealed class UpdateCustomerHandler
         }
 
         // Apply EF's original value for optimistic concurrency
-        _dbContext.Entry(customer).Property(c => c.Version).OriginalValue = command.ExpectedVersion;
+        _dbContext.Entry(customer).Property(c => c.ConcurrencyStamp).OriginalValue = command.ConcurrencyStamp;
 
         customer.Update(
             command.Name,

@@ -2,13 +2,14 @@ using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using ResolveOps.Application;
 using ResolveOps.Security;
 
 namespace ResolveOps.Modules.Partners.Features.CreateBusinessCalendar;
 
-public static class CreateBusinessCalendarEndpoint
+public sealed class CreateBusinessCalendarEndpoint : IEndpoint
 {
-    public static void MapEndpoint(IEndpointRouteBuilder app)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
         app.MapPost("/api/business-calendars", async (
             CreateBusinessCalendarCommand command,
@@ -26,17 +27,7 @@ public static class CreateBusinessCalendarEndpoint
 
             return result.Match(
                 onSuccess: id => Results.Created($"/api/business-calendars/{id}", new { CalendarId = id }),
-                onFailure: error => error.Code switch
-                {
-                    "VALIDATION_FAILED" => Results.Problem(
-                        statusCode: StatusCodes.Status409Conflict,
-                        title: "Duplicate Calendar Name",
-                        detail: error.Message),
-                    _ => Results.Problem(
-                        statusCode: StatusCodes.Status400BadRequest,
-                        title: "Create Business Calendar Failed",
-                        detail: error.Message),
-                });
+                onFailure: error => error.ToProblemDetails());
         })
         .WithName("CreateBusinessCalendar")
         .WithTags("BusinessCalendars")

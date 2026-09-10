@@ -1,13 +1,14 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using ResolveOps.Application;
 using ResolveOps.Security;
 
 namespace ResolveOps.Modules.Partners.Features.GetLocation;
 
-public static class GetLocationEndpoint
+public sealed class GetLocationEndpoint : IEndpoint
 {
-    public static void MapEndpoint(IEndpointRouteBuilder app)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
         app.MapGet("/api/locations/{locationId:guid}", async (
             Guid locationId,
@@ -18,7 +19,7 @@ public static class GetLocationEndpoint
 
             return result.Match(
                 onSuccess: data => Results.Ok(data),
-                onFailure: _ => Results.NotFound());
+                onFailure: error => error.ToProblemDetails());
         })
         .WithName("GetLocation")
         .WithTags("Locations")

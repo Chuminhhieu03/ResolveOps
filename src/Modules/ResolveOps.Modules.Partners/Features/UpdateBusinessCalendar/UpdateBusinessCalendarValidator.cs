@@ -27,7 +27,7 @@ public sealed class UpdateBusinessCalendarValidator : AbstractValidator<UpdateBu
             .LessThan(x => x.WorkingEnd)
             .WithMessage("WorkingStart must be earlier than WorkingEnd.");
 
-        RuleFor(x => x.ExpectedVersion).GreaterThan(0);
+        RuleFor(x => x.ConcurrencyStamp).NotEmpty();
     }
 
     private static bool IsValidTimezone(string id)

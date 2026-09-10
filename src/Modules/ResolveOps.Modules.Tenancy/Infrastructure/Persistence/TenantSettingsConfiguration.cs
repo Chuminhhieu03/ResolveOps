@@ -20,10 +20,14 @@ public sealed class TenantSettingsConfiguration : IEntityTypeConfiguration<Tenan
             .HasColumnType("nvarchar(max)")
             .IsRequired();
 
-        builder.Property(s => s.UpdatedAtUtc).IsRequired();
+        builder.Property(s => s.CreatedAtUtc).IsRequired();
+        builder.Property(s => s.CreatedBy).HasMaxLength(255);
+        builder.Property(s => s.UpdatedAtUtc);
+        builder.Property(s => s.UpdatedBy).HasMaxLength(255);
 
-        builder.Property(s => s.Version)
+        builder.Property(s => s.ConcurrencyStamp)
             .IsConcurrencyToken()
+            .HasMaxLength(36)
             .IsRequired();
     }
 }

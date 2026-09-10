@@ -2,13 +2,14 @@ using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using ResolveOps.Application;
 using ResolveOps.Security;
 
 namespace ResolveOps.Modules.Partners.Features.UpdateLocation;
 
-public static class UpdateLocationEndpoint
+public sealed class UpdateLocationEndpoint : IEndpoint
 {
-    public static void MapEndpoint(IEndpointRouteBuilder app)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
         app.MapPut("/api/locations/{locationId:guid}", async (
             Guid locationId,
@@ -29,7 +30,7 @@ public static class UpdateLocationEndpoint
                 request.Timezone,
                 request.Latitude,
                 request.Longitude,
-                request.ExpectedVersion);
+                request.ConcurrencyStamp);
 
             var validationResult = await validator.ValidateAsync(command, cancellationToken);
             if (!validationResult.IsValid)
@@ -41,18 +42,7 @@ public static class UpdateLocationEndpoint
 
             return result.Match(
                 onSuccess: () => Results.NoContent(),
-                onFailure: error => error.Code switch
-                {
-                    "CONCURRENCY_CONFLICT" => Results.Problem(
-                        statusCode: StatusCodes.Status409Conflict,
-                        title: "Concurrency Conflict",
-                        detail: error.Message),
-                    "RESOURCE_NOT_FOUND" => Results.NotFound(),
-                    _ => Results.Problem(
-                        statusCode: StatusCodes.Status400BadRequest,
-                        title: "Update Location Failed",
-                        detail: error.Message),
-                });
+                onFailure: error => error.ToProblemDetails());
         })
         .WithName("UpdateLocation")
         .WithTags("Locations")
@@ -75,4 +65,4 @@ public sealed record UpdateLocationRequest(
     string Timezone,
     decimal? Latitude,
     decimal? Longitude,
-    long ExpectedVersion);
+    string ConcurrencyStamp);

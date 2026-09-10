@@ -2,13 +2,14 @@ using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using ResolveOps.Application;
 using ResolveOps.Security;
 
 namespace ResolveOps.Modules.Partners.Features.AddHoliday;
 
-public static class AddHolidayEndpoint
+public sealed class AddHolidayEndpoint : IEndpoint
 {
-    public static void MapEndpoint(IEndpointRouteBuilder app)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
         app.MapPost("/api/business-calendars/{calendarId:guid}/holidays", async (
             Guid calendarId,
@@ -33,18 +34,7 @@ public static class AddHolidayEndpoint
 
             return result.Match(
                 onSuccess: () => Results.NoContent(),
-                onFailure: error => error.Code switch
-                {
-                    "VALIDATION_FAILED" => Results.Problem(
-                        statusCode: StatusCodes.Status409Conflict,
-                        title: "Validation Failed",
-                        detail: error.Message),
-                    "RESOURCE_NOT_FOUND" => Results.NotFound(),
-                    _ => Results.Problem(
-                        statusCode: StatusCodes.Status400BadRequest,
-                        title: "Add Holiday Failed",
-                        detail: error.Message),
-                });
+                onFailure: error => error.ToProblemDetails());
         })
         .WithName("AddHoliday")
         .WithTags("BusinessCalendars")

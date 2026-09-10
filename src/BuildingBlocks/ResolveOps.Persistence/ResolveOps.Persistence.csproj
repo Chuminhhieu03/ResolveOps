@@ -16,6 +16,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="EntityFrameworkCore.Exceptions.SqlServer" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
@@ -28,6 +29,7 @@
   <ItemGroup>
     <ProjectReference Include="..\ResolveOps.Domain\ResolveOps.Domain.csproj" />
     <ProjectReference Include="..\ResolveOps.Security\ResolveOps.Security.csproj" />
+    <ProjectReference Include="..\ResolveOps.Application\ResolveOps.Application.csproj" />
   </ItemGroup>
 
 </Project>

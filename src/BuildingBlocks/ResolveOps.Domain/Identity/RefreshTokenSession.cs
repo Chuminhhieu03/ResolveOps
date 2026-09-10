@@ -12,7 +12,7 @@ namespace ResolveOps.Domain.Identity;
 ///
 /// Concurrency: version column prevents lost-update on simultaneous refresh attempts.
 /// </summary>
-public sealed class RefreshTokenSession
+public sealed class RefreshTokenSession : IHasConcurrencyStamp
 {
     public Guid Id { get; private set; }
 
@@ -42,7 +42,7 @@ public sealed class RefreshTokenSession
     public string? UserAgentHash { get; private set; }
 
     /// <summary>Optimistic concurrency token (spec §15.1).</summary>
-    public long Version { get; private set; }
+    public string ConcurrencyStamp { get; set; } = Guid.NewGuid().ToString("N");
 
     // EF Core requires a parameterless constructor.
     private RefreshTokenSession() { }
@@ -68,7 +68,7 @@ public sealed class RefreshTokenSession
             ExpiresAtUtc = expiresAtUtc,
             CreatedIpHash = ipHash,
             UserAgentHash = userAgentHash,
-            Version = 1,
+            ConcurrencyStamp = Guid.NewGuid().ToString("N"),
         };
     }
 
@@ -92,7 +92,7 @@ public sealed class RefreshTokenSession
             ExpiresAtUtc = expiresAtUtc,
             CreatedIpHash = ipHash,
             UserAgentHash = userAgentHash,
-            Version = 1,
+            ConcurrencyStamp = Guid.NewGuid().ToString("N"),
         };
     }
 

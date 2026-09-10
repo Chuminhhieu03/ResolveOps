@@ -45,6 +45,6 @@ internal sealed class GetBusinessCalendarHandler
             holidayResponses,
             calendar.CreatedAtUtc,
             calendar.UpdatedAtUtc,
-            calendar.Version);
+            calendar.ConcurrencyStamp);
     }
 }

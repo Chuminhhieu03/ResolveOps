@@ -54,10 +54,13 @@ public sealed class LocationConfiguration : IEntityTypeConfiguration<Location>
             .HasColumnType("decimal(9,6)");
 
         builder.Property(l => l.CreatedAtUtc).IsRequired();
-        builder.Property(l => l.UpdatedAtUtc).IsRequired();
+        builder.Property(l => l.CreatedBy).HasMaxLength(255);
+        builder.Property(l => l.UpdatedAtUtc);
+        builder.Property(l => l.UpdatedBy).HasMaxLength(255);
 
-        builder.Property(l => l.Version)
+        builder.Property(l => l.ConcurrencyStamp)
             .IsConcurrencyToken()
+            .HasMaxLength(36)
             .IsRequired();
 
         // spec §15.4 — code unique within tenant

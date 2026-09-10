@@ -2,13 +2,14 @@ using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using ResolveOps.Application;
 using ResolveOps.Security;
 
 namespace ResolveOps.Modules.Partners.Features.CreateCustomer;
 
-public static class CreateCustomerEndpoint
+public sealed class CreateCustomerEndpoint : IEndpoint
 {
-    public static void MapEndpoint(IEndpointRouteBuilder app)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
         app.MapPost("/api/customers", async (
             CreateCustomerCommand command,
@@ -26,17 +27,7 @@ public static class CreateCustomerEndpoint
 
             return result.Match(
                 onSuccess: id => Results.Created($"/api/customers/{id}", new { CustomerId = id }),
-                onFailure: error => error.Code switch
-                {
-                    "VALIDATION_FAILED" => Results.Problem(
-                        statusCode: StatusCodes.Status409Conflict,
-                        title: "Duplicate Customer Code",
-                        detail: error.Message),
-                    _ => Results.Problem(
-                        statusCode: StatusCodes.Status400BadRequest,
-                        title: "Create Customer Failed",
-                        detail: error.Message),
-                });
+                onFailure: error => error.ToProblemDetails());
         })
         .WithName("CreateCustomer")
         .WithTags("Customers")

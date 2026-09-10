@@ -49,7 +49,7 @@ public sealed class UpdateLocationValidator : AbstractValidator<UpdateLocationCo
             .When(x => x.Latitude.HasValue)
             .WithMessage("Longitude is required when Latitude is provided.");
 
-        RuleFor(x => x.ExpectedVersion).GreaterThan(0);
+        RuleFor(x => x.ConcurrencyStamp).NotEmpty();
     }
 
     private static bool IsValidTimezone(string id)

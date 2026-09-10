@@ -39,6 +39,6 @@ internal sealed class GetLocationHandler
             location.Longitude,
             location.CreatedAtUtc,
             location.UpdatedAtUtc,
-            location.Version);
+            location.ConcurrencyStamp);
     }
 }

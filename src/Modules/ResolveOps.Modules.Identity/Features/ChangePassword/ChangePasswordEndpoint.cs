@@ -2,12 +2,13 @@ using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using ResolveOps.Application;
 
 namespace ResolveOps.Modules.Identity.Features.ChangePassword;
 
-public static class ChangePasswordEndpoint
+public sealed class ChangePasswordEndpoint : IEndpoint
 {
-    public static void MapEndpoint(IEndpointRouteBuilder app)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
         app.MapPost("/api/identity/me/password", async (
             ChangePasswordCommand command,
@@ -25,10 +26,7 @@ public static class ChangePasswordEndpoint
 
             return result.Match(
                 onSuccess: () => Results.NoContent(),
-                onFailure: error => Results.Problem(
-                    statusCode: StatusCodes.Status400BadRequest,
-                    title: "Failed to change password",
-                    detail: error.Message)
+                onFailure: error => error.ToProblemDetails()
             );
         })
         .WithName("ChangePassword")

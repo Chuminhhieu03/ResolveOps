@@ -42,7 +42,7 @@ internal sealed class UpdateBusinessCalendarHandler
         }
 
         // Apply EF's original value for optimistic concurrency
-        _dbContext.Entry(calendar).Property(bc => bc.Version).OriginalValue = command.ExpectedVersion;
+        _dbContext.Entry(calendar).Property(bc => bc.ConcurrencyStamp).OriginalValue = command.ConcurrencyStamp;
 
         calendar.Update(
             command.Name,

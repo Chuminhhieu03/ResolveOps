@@ -1,13 +1,14 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using ResolveOps.Application;
 using ResolveOps.Security;
 
 namespace ResolveOps.Modules.Partners.Features.GetCustomer;
 
-public static class GetCustomerEndpoint
+public sealed class GetCustomerEndpoint : IEndpoint
 {
-    public static void MapEndpoint(IEndpointRouteBuilder app)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
         app.MapGet("/api/customers/{customerId:guid}", async (
             Guid customerId,
@@ -18,7 +19,7 @@ public static class GetCustomerEndpoint
 
             return result.Match(
                 onSuccess: data => Results.Ok(data),
-                onFailure: _ => Results.NotFound());
+                onFailure: error => error.ToProblemDetails());
         })
         .WithName("GetCustomer")
         .WithTags("Customers")

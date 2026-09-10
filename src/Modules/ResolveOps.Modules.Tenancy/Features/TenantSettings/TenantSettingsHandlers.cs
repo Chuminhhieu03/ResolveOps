@@ -26,10 +26,10 @@ internal sealed class TenantSettingsHandlers
         if (settings == null)
         {
             // Settings might not exist yet if this is a newly created tenant
-            return new GetTenantSettingsResponse("{}", 0);
+            return new GetTenantSettingsResponse("{}", "");
         }
 
-        return new GetTenantSettingsResponse(settings.SettingsJson, settings.Version);
+        return new GetTenantSettingsResponse(settings.SettingsJson, settings.ConcurrencyStamp);
     }
 
     public async Task<Result> HandleUpdateAsync(UpdateTenantSettingsCommand command, CancellationToken cancellationToken)
@@ -40,14 +40,14 @@ internal sealed class TenantSettingsHandlers
         if (settings == null)
         {
             // Create new settings record
-            settings = ResolveOps.Domain.Tenancy.TenantSettings.CreateDefault(_tenantContext.TenantId.Value, _timeProvider);
+            settings = Domain.Tenancy.TenantSettings.CreateDefault(_tenantContext.TenantId.Value, _timeProvider);
             settings.Update(command.SettingsJson, _timeProvider);
             _dbContext.TenantSettings.Add(settings);
         }
         else
         {
             // Update existing with optimistic concurrency check
-            _dbContext.Entry(settings).Property(s => s.Version).OriginalValue = command.ExpectedVersion;
+            _dbContext.Entry(settings).Property(s => s.ConcurrencyStamp).OriginalValue = command.ConcurrencyStamp;
             settings.Update(command.SettingsJson, _timeProvider);
         }
 

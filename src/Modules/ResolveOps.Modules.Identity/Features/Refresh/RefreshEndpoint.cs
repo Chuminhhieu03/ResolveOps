@@ -1,13 +1,14 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using ResolveOps.Application;
 using ResolveOps.Modules.Identity.Features.Login;
 
 namespace ResolveOps.Modules.Identity.Features.Refresh;
 
-public static class RefreshEndpoint
+public sealed class RefreshEndpoint : IEndpoint
 {
-    public static void MapEndpoint(IEndpointRouteBuilder app)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
         app.MapPost("/api/identity/refresh", async (
             RefreshHandler handler,

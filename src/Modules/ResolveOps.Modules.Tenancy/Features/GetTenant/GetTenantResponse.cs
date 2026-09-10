@@ -8,5 +8,5 @@ public sealed record GetTenantResponse(
     string DefaultTimezone,
     string DefaultCurrency,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset UpdatedAtUtc,
-    long Version);
+    DateTimeOffset? UpdatedAtUtc,
+    string ConcurrencyStamp);

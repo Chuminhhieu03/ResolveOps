@@ -1,13 +1,14 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using ResolveOps.Application;
 using ResolveOps.Security;
 
 namespace ResolveOps.Modules.Partners.Features.GetCarrier;
 
-public static class GetCarrierEndpoint
+public sealed class GetCarrierEndpoint : IEndpoint
 {
-    public static void MapEndpoint(IEndpointRouteBuilder app)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
         app.MapGet("/api/carriers/{carrierId:guid}", async (
             Guid carrierId,
@@ -18,7 +19,7 @@ public static class GetCarrierEndpoint
 
             return result.Match(
                 onSuccess: data => Results.Ok(data),
-                onFailure: _ => Results.NotFound());
+                onFailure: error => error.ToProblemDetails());
         })
         .WithName("GetCarrier")
         .WithTags("Carriers")

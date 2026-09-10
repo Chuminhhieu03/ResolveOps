@@ -34,10 +34,13 @@ public sealed class BusinessCalendarConfiguration : IEntityTypeConfiguration<Bus
             .IsRequired();
 
         builder.Property(bc => bc.CreatedAtUtc).IsRequired();
-        builder.Property(bc => bc.UpdatedAtUtc).IsRequired();
+        builder.Property(bc => bc.CreatedBy).HasMaxLength(255);
+        builder.Property(bc => bc.UpdatedAtUtc);
+        builder.Property(bc => bc.UpdatedBy).HasMaxLength(255);
 
-        builder.Property(bc => bc.Version)
+        builder.Property(bc => bc.ConcurrencyStamp)
             .IsConcurrencyToken()
+            .HasMaxLength(36)
             .IsRequired();
 
         // spec §15.2 — name unique within tenant

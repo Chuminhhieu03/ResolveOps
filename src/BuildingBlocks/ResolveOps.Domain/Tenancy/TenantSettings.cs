@@ -9,7 +9,7 @@ namespace ResolveOps.Domain.Tenancy;
 ///
 /// This record uses Version for optimistic concurrency on PATCH /tenant/settings.
 /// </summary>
-public sealed class TenantSettings
+public sealed class TenantSettings : IAuditableEntity, IHasConcurrencyStamp
 {
     /// <summary>PK and FK to <see cref="Tenant"/> — one-to-one relationship.</summary>
     [System.ComponentModel.DataAnnotations.Key]
@@ -21,10 +21,13 @@ public sealed class TenantSettings
     /// </summary>
     public string SettingsJson { get; private set; } = "{}";
 
-    public DateTimeOffset UpdatedAtUtc { get; private set; }
+    public DateTimeOffset CreatedAtUtc { get; set; }
+    public string? CreatedBy { get; set; }
+    public DateTimeOffset? UpdatedAtUtc { get; set; }
+    public string? UpdatedBy { get; set; }
 
     /// <summary>Optimistic concurrency token (spec §15.2).</summary>
-    public long Version { get; private set; }
+    public string ConcurrencyStamp { get; set; } = Guid.NewGuid().ToString("N");
 
     // EF Core requires a parameterless constructor.
     private TenantSettings() { }
@@ -35,8 +38,9 @@ public sealed class TenantSettings
         {
             TenantId = tenantId,
             SettingsJson = "{}",
+            CreatedAtUtc = timeProvider.GetUtcNow(),
             UpdatedAtUtc = timeProvider.GetUtcNow(),
-            Version = 1,
+            ConcurrencyStamp = Guid.NewGuid().ToString("N"),
         };
     }
 
@@ -44,6 +48,6 @@ public sealed class TenantSettings
     {
         SettingsJson = settingsJson;
         UpdatedAtUtc = timeProvider.GetUtcNow();
-        Version++;
+        ConcurrencyStamp = Guid.NewGuid().ToString("N");
     }
 }

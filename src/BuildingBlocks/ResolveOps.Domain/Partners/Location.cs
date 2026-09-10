@@ -12,7 +12,7 @@ namespace ResolveOps.Domain.Partners;
 /// - Timezone must be a valid IANA timezone identifier (validated at application layer).
 /// - Latitude/longitude are optional but both must be provided together.
 /// </summary>
-public sealed class Location
+public sealed class Location : IAuditableEntity, IHasConcurrencyStamp
 {
     public Guid Id { get; private set; }
     public Guid TenantId { get; private set; }
@@ -40,11 +40,13 @@ public sealed class Location
     /// <summary>Optional decimal longitude (-180 to 180).</summary>
     public decimal? Longitude { get; private set; }
 
-    public DateTimeOffset CreatedAtUtc { get; private set; }
-    public DateTimeOffset UpdatedAtUtc { get; private set; }
+    public DateTimeOffset CreatedAtUtc { get; set; }
+    public string? CreatedBy { get; set; }
+    public DateTimeOffset? UpdatedAtUtc { get; set; }
+    public string? UpdatedBy { get; set; }
 
     /// <summary>Optimistic concurrency token (spec §15.1).</summary>
-    public long Version { get; private set; }
+    public string ConcurrencyStamp { get; set; } = Guid.NewGuid().ToString("N");
 
     // EF Core requires a parameterless constructor.
     private Location() { }
@@ -82,7 +84,7 @@ public sealed class Location
             Longitude = longitude,
             CreatedAtUtc = now,
             UpdatedAtUtc = now,
-            Version = 1,
+            ConcurrencyStamp = Guid.NewGuid().ToString("N"),
         };
     }
 
@@ -110,6 +112,6 @@ public sealed class Location
         Latitude = latitude;
         Longitude = longitude;
         UpdatedAtUtc = timeProvider.GetUtcNow();
-        Version++;
+        ConcurrencyStamp = Guid.NewGuid().ToString("N");
     }
 }

@@ -2,13 +2,14 @@ using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using ResolveOps.Application;
 using ResolveOps.Security;
 
 namespace ResolveOps.Modules.Tenancy.Features.TenantSettings;
 
-public static class TenantSettingsEndpoint
+public sealed class TenantSettingsEndpoint : IEndpoint
 {
-    public static void MapEndpoints(IEndpointRouteBuilder app)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/tenants/current/settings")
             .WithTags("Tenancy")
@@ -22,7 +23,7 @@ public static class TenantSettingsEndpoint
 
             return result.Match(
                 onSuccess: data => Results.Ok(data),
-                onFailure: error => Results.Problem(statusCode: StatusCodes.Status400BadRequest, title: "Failed to get settings", detail: error.Message)
+                onFailure: error => error.ToProblemDetails()
             );
         })
         .WithName("GetTenantSettings")
@@ -44,11 +45,7 @@ public static class TenantSettingsEndpoint
 
             return result.Match(
                 onSuccess: () => Results.NoContent(),
-                onFailure: error => error.Code switch
-                {
-                    "CONCURRENCY_CONFLICT" => Results.Problem(statusCode: StatusCodes.Status409Conflict, title: "Concurrency Conflict", detail: error.Message),
-                    _ => Results.Problem(statusCode: StatusCodes.Status400BadRequest, title: "Update Failed", detail: error.Message)
-                }
+                onFailure: error => error.ToProblemDetails()
             );
         })
         .WithName("UpdateTenantSettings")

@@ -1,13 +1,14 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using ResolveOps.Application;
 using ResolveOps.Security;
 
 namespace ResolveOps.Modules.Tenancy.Features.GetTenant;
 
-public static class GetTenantEndpoint
+public sealed class GetTenantEndpoint : IEndpoint
 {
-    public static void MapEndpoint(IEndpointRouteBuilder app)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
         app.MapGet("/api/tenants/current", async (
             GetTenantHandler handler,
@@ -18,10 +19,7 @@ public static class GetTenantEndpoint
 
             return result.Match(
                 onSuccess: data => Results.Ok(data),
-                onFailure: error => Results.Problem(
-                    statusCode: StatusCodes.Status404NotFound,
-                    title: "Tenant Not Found",
-                    detail: error.Message)
+                onFailure: error => error.ToProblemDetails()
             );
         })
         .WithName("GetCurrentTenant")

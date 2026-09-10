@@ -35,10 +35,13 @@ public sealed class CustomerConfiguration : IEntityTypeConfiguration<Customer>
             .IsRequired();
 
         builder.Property(c => c.CreatedAtUtc).IsRequired();
-        builder.Property(c => c.UpdatedAtUtc).IsRequired();
+        builder.Property(c => c.CreatedBy).HasMaxLength(255);
+        builder.Property(c => c.UpdatedAtUtc);
+        builder.Property(c => c.UpdatedBy).HasMaxLength(255);
 
-        builder.Property(c => c.Version)
+        builder.Property(c => c.ConcurrencyStamp)
             .IsConcurrencyToken()
+            .HasMaxLength(36)
             .IsRequired();
 
         // spec §15.4 — code unique within tenant

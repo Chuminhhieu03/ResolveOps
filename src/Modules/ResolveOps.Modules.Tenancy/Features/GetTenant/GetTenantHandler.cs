@@ -37,6 +37,6 @@ internal sealed class GetTenantHandler
             tenant.DefaultCurrency,
             tenant.CreatedAtUtc,
             tenant.UpdatedAtUtc,
-            tenant.Version);
+            tenant.ConcurrencyStamp);
     }
 }

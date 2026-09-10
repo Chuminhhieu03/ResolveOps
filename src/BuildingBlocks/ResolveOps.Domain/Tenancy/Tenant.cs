@@ -13,7 +13,7 @@ namespace ResolveOps.Domain.Tenancy;
 /// - DefaultCurrency must be a valid ISO 4217 code.
 /// - DefaultTimezone must be a valid IANA timezone identifier.
 /// </summary>
-public sealed class Tenant
+public sealed class Tenant : IAuditableEntity, IHasConcurrencyStamp
 {
     public Guid Id { get; private set; }
 
@@ -31,11 +31,13 @@ public sealed class Tenant
     /// <summary>ISO 4217 currency code, e.g. "VND", "USD".</summary>
     public string DefaultCurrency { get; private set; } = "USD";
 
-    public DateTimeOffset CreatedAtUtc { get; private set; }
-    public DateTimeOffset UpdatedAtUtc { get; private set; }
+    public DateTimeOffset CreatedAtUtc { get; set; }
+    public string? CreatedBy { get; set; }
+    public DateTimeOffset? UpdatedAtUtc { get; set; }
+    public string? UpdatedBy { get; set; }
 
-    /// <summary>Optimistic concurrency token — increment on every update (spec §15.1).</summary>
-    public long Version { get; private set; }
+    /// <summary>Optimistic concurrency token — updated on every change.</summary>
+    public string ConcurrencyStamp { get; set; } = Guid.NewGuid().ToString("N");
 
     // EF Core requires a parameterless constructor.
     private Tenant() { }
@@ -58,7 +60,7 @@ public sealed class Tenant
             Status = TenantStatus.Active,
             CreatedAtUtc = now,
             UpdatedAtUtc = now,
-            Version = 1,
+            ConcurrencyStamp = Guid.NewGuid().ToString("N"),
         };
     }
 
@@ -72,21 +74,21 @@ public sealed class Tenant
         DefaultTimezone = defaultTimezone;
         DefaultCurrency = defaultCurrency.ToUpperInvariant();
         UpdatedAtUtc = timeProvider.GetUtcNow();
-        Version++;
+        ConcurrencyStamp = Guid.NewGuid().ToString("N");
     }
 
     public void Suspend(TimeProvider timeProvider)
     {
         Status = TenantStatus.Suspended;
         UpdatedAtUtc = timeProvider.GetUtcNow();
-        Version++;
+        ConcurrencyStamp = Guid.NewGuid().ToString("N");
     }
 
     public void Activate(TimeProvider timeProvider)
     {
         Status = TenantStatus.Active;
         UpdatedAtUtc = timeProvider.GetUtcNow();
-        Version++;
+        ConcurrencyStamp = Guid.NewGuid().ToString("N");
     }
 
     public bool IsActive => Status == TenantStatus.Active;

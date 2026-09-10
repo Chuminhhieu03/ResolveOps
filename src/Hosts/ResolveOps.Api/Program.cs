@@ -79,6 +79,8 @@ builder.Services.AddIdentityModule();
 builder.Services.AddTenancyModule();
 builder.Services.AddPartnersModule();
 
+builder.Services.AddScoped<ResolveOps.Application.IErrorMessageProvider, ResolveOps.Persistence.Services.DatabaseErrorMessageProvider>();
+
 // ── Health Checks ─────────────────────────────────────────────────────────
 builder.Services
     .AddHealthChecks()

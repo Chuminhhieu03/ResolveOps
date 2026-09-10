@@ -10,5 +10,5 @@ public sealed record CarrierResponse(
     string? ContactEmail,
     string ClaimSubmissionChannel,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset UpdatedAtUtc,
-    long Version);
+    DateTimeOffset? UpdatedAtUtc,
+    string ConcurrencyStamp);

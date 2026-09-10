@@ -2,13 +2,14 @@ using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using ResolveOps.Application;
 using ResolveOps.Security;
 
 namespace ResolveOps.Modules.Partners.Features.CreateLocation;
 
-public static class CreateLocationEndpoint
+public sealed class CreateLocationEndpoint : IEndpoint
 {
-    public static void MapEndpoint(IEndpointRouteBuilder app)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
         app.MapPost("/api/locations", async (
             CreateLocationCommand command,
@@ -26,17 +27,7 @@ public static class CreateLocationEndpoint
 
             return result.Match(
                 onSuccess: id => Results.Created($"/api/locations/{id}", new { LocationId = id }),
-                onFailure: error => error.Code switch
-                {
-                    "VALIDATION_FAILED" => Results.Problem(
-                        statusCode: StatusCodes.Status409Conflict,
-                        title: "Duplicate Location Code",
-                        detail: error.Message),
-                    _ => Results.Problem(
-                        statusCode: StatusCodes.Status400BadRequest,
-                        title: "Create Location Failed",
-                        detail: error.Message),
-                });
+                onFailure: error => error.ToProblemDetails());
         })
         .WithName("CreateLocation")
         .WithTags("Locations")

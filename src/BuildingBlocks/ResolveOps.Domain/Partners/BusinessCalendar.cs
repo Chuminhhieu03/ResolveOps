@@ -13,7 +13,7 @@ namespace ResolveOps.Domain.Partners;
 /// - A holiday date can appear at most once per calendar (enforced by DB unique index).
 /// - Version is used for optimistic concurrency.
 /// </summary>
-public sealed class BusinessCalendar
+public sealed class BusinessCalendar : IAuditableEntity, IHasConcurrencyStamp
 {
     public Guid Id { get; private set; }
     public Guid TenantId { get; private set; }
@@ -44,11 +44,13 @@ public sealed class BusinessCalendar
     /// <summary>Active or Archived.</summary>
     public string Status { get; private set; } = BusinessCalendarStatus.Active;
 
-    public DateTimeOffset CreatedAtUtc { get; private set; }
-    public DateTimeOffset UpdatedAtUtc { get; private set; }
+    public DateTimeOffset CreatedAtUtc { get; set; }
+    public string? CreatedBy { get; set; }
+    public DateTimeOffset? UpdatedAtUtc { get; set; }
+    public string? UpdatedBy { get; set; }
 
     /// <summary>Optimistic concurrency token (spec §15.1).</summary>
-    public long Version { get; private set; }
+    public string ConcurrencyStamp { get; set; } = Guid.NewGuid().ToString("N");
 
     private readonly List<BusinessCalendarHoliday> _holidays = [];
 
@@ -80,7 +82,7 @@ public sealed class BusinessCalendar
             Status = BusinessCalendarStatus.Active,
             CreatedAtUtc = now,
             UpdatedAtUtc = now,
-            Version = 1,
+            ConcurrencyStamp = Guid.NewGuid().ToString("N"),
         };
     }
 
@@ -98,14 +100,14 @@ public sealed class BusinessCalendar
         WorkingStart = workingStart;
         WorkingEnd = workingEnd;
         UpdatedAtUtc = timeProvider.GetUtcNow();
-        Version++;
+        ConcurrencyStamp = Guid.NewGuid().ToString("N");
     }
 
     public void Archive(TimeProvider timeProvider)
     {
         Status = BusinessCalendarStatus.Archived;
         UpdatedAtUtc = timeProvider.GetUtcNow();
-        Version++;
+        ConcurrencyStamp = Guid.NewGuid().ToString("N");
     }
 
     /// <summary>
@@ -123,7 +125,7 @@ public sealed class BusinessCalendar
             TenantId, Id, holidayDate, name, isWorkingOverride);
         _holidays.Add(holiday);
         UpdatedAtUtc = timeProvider.GetUtcNow();
-        Version++;
+        ConcurrencyStamp = Guid.NewGuid().ToString("N");
         return holiday;
     }
 
@@ -141,7 +143,7 @@ public sealed class BusinessCalendar
 
         _holidays.Remove(holiday);
         UpdatedAtUtc = timeProvider.GetUtcNow();
-        Version++;
+        ConcurrencyStamp = Guid.NewGuid().ToString("N");
         return true;
     }
 

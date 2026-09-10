@@ -7,4 +7,4 @@ public sealed record UpdateBusinessCalendarCommand(
     int WorkingDaysMask,
     TimeOnly WorkingStart,
     TimeOnly WorkingEnd,
-    long ExpectedVersion);
+    string ConcurrencyStamp);

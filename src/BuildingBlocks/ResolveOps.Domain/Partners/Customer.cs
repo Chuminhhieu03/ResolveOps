@@ -8,7 +8,7 @@ namespace ResolveOps.Domain.Partners;
 /// - Priority drives exception severity calculation.
 /// - Version is used for optimistic concurrency.
 /// </summary>
-public sealed class Customer
+public sealed class Customer : IAuditableEntity, IHasConcurrencyStamp
 {
     public Guid Id { get; private set; }
     public Guid TenantId { get; private set; }
@@ -27,11 +27,13 @@ public sealed class Customer
     /// <summary>Active or Inactive.</summary>
     public string Status { get; private set; } = CustomerStatus.Active;
 
-    public DateTimeOffset CreatedAtUtc { get; private set; }
-    public DateTimeOffset UpdatedAtUtc { get; private set; }
+    public DateTimeOffset CreatedAtUtc { get; set; }
+    public string? CreatedBy { get; set; }
+    public DateTimeOffset? UpdatedAtUtc { get; set; }
+    public string? UpdatedBy { get; set; }
 
     /// <summary>Optimistic concurrency token (spec §15.1).</summary>
-    public long Version { get; private set; }
+    public string ConcurrencyStamp { get; set; } = Guid.NewGuid().ToString("N");
 
     // EF Core requires a parameterless constructor.
     private Customer() { }
@@ -56,7 +58,7 @@ public sealed class Customer
             Status = CustomerStatus.Active,
             CreatedAtUtc = now,
             UpdatedAtUtc = now,
-            Version = 1,
+            ConcurrencyStamp = Guid.NewGuid().ToString("N"),
         };
     }
 
@@ -70,14 +72,14 @@ public sealed class Customer
         Priority = priority;
         DefaultTimezone = defaultTimezone;
         UpdatedAtUtc = timeProvider.GetUtcNow();
-        Version++;
+        ConcurrencyStamp = Guid.NewGuid().ToString("N");
     }
 
     public void Deactivate(TimeProvider timeProvider)
     {
         Status = CustomerStatus.Inactive;
         UpdatedAtUtc = timeProvider.GetUtcNow();
-        Version++;
+        ConcurrencyStamp = Guid.NewGuid().ToString("N");
     }
 
     public bool IsActive => Status == CustomerStatus.Active;

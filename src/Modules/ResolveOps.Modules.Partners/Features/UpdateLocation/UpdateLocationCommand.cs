@@ -12,4 +12,4 @@ public sealed record UpdateLocationCommand(
     string Timezone,
     decimal? Latitude,
     decimal? Longitude,
-    long ExpectedVersion);
+    string ConcurrencyStamp);

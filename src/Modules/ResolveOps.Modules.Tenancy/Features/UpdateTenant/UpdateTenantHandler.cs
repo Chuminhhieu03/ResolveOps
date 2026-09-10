@@ -29,7 +29,7 @@ internal sealed class UpdateTenantHandler
         }
 
         // Apply EF's original value token for optimistic concurrency
-        _dbContext.Entry(tenant).Property(t => t.Version).OriginalValue = command.ExpectedVersion;
+        _dbContext.Entry(tenant).Property(t => t.ConcurrencyStamp).OriginalValue = command.ConcurrencyStamp;
 
         tenant.Update(command.Name, command.DefaultTimezone, command.DefaultCurrency, _timeProvider);
 
