@@ -97,7 +97,17 @@
 
 ---
 
+### A-013 — Tracking Ingestion Replay Guard and Out-of-Order Projection
 
+- **Date:** 2026-09-11
+- **Status:** Active
+- **Context:** Carrier webhooks retry on network hiccups, and event delivery across multiple legs or carriers may arrive out of chronological order.
+- **Decision:** Inbound receipts enforce a filtered unique index `(tenant_id, source_system, external_event_id)` to silently ignore replays with HTTP 202 without publishing duplicate normalization work. The `Shipment` aggregate milestone projection retains terminal status (`Delivered`) and earliest pickup timestamps when late out-of-order events arrive.
+- **Reversible:** Yes — milestone transition logic can be adjusted in `Shipment.ApplyTrackingEvent`.
+- **Impact:** Architectural / Invariant.
+- **ADR:** [ADR-023](adr/ADR-023-tracking-ingestion-and-quarantine.md).
+
+---
 
 ```markdown
 ### A-NNN — Title

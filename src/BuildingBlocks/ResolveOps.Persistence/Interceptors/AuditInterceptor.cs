@@ -31,7 +31,7 @@ public sealed class AuditInterceptor : SaveChangesInterceptor
 
         var entries = context.ChangeTracker.Entries<IAuditableEntity>();
         var now = _timeProvider.GetUtcNow();
-        
+
         // In a real application, you would inject an ICurrentUser interface or IHttpContextAccessor
         // to retrieve the actual user's name/ID. For now, we will use a static "System".
         var currentUser = "System";

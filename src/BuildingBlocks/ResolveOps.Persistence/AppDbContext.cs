@@ -8,6 +8,7 @@ using ResolveOps.Domain.Messaging;
 using ResolveOps.Domain.Partners;
 using ResolveOps.Domain.Shipments;
 using ResolveOps.Domain.Tenancy;
+using ResolveOps.Domain.Tracking;
 using ResolveOps.Persistence.Conventions;
 
 namespace ResolveOps.Persistence;
@@ -70,6 +71,11 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
     public DbSet<ShipmentLeg> ShipmentLegs => Set<ShipmentLeg>();
     public DbSet<ShipmentItem> ShipmentItems => Set<ShipmentItem>();
     public DbSet<ShipmentTrackingAlias> ShipmentTrackingAliases => Set<ShipmentTrackingAlias>();
+
+    // ── Tracking (Phase 6) ────────────────────────────────────────────────────
+    public DbSet<InboundEventReceipt> InboundEventReceipts => Set<InboundEventReceipt>();
+    public DbSet<TrackingEvent> TrackingEvents => Set<TrackingEvent>();
+    public DbSet<QuarantinedEvent> QuarantinedEvents => Set<QuarantinedEvent>();
 
     // ── Messaging (Phase 5) ───────────────────────────────────────────────────
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
@@ -168,6 +174,16 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
 
         builder.Entity<ShipmentTrackingAlias>()
             .HasQueryFilter(a => _currentTenantId == null || a.TenantId == _currentTenantId);
+
+        // Tracking — all entities are tenant-scoped (Phase 6)
+        builder.Entity<InboundEventReceipt>()
+            .HasQueryFilter(r => _currentTenantId == null || r.TenantId == _currentTenantId);
+
+        builder.Entity<TrackingEvent>()
+            .HasQueryFilter(e => _currentTenantId == null || e.TenantId == _currentTenantId);
+
+        builder.Entity<QuarantinedEvent>()
+            .HasQueryFilter(q => _currentTenantId == null || q.TenantId == _currentTenantId);
 
         // Messaging — OutboxMessage has nullable TenantId (system events have no tenant).
         // No global filter on OutboxMessage/InboxMessage/IdempotencyRecord — the publisher

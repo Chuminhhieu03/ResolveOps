@@ -19,7 +19,7 @@ public sealed class UpdateUserRolesEndpoint : IEndpoint
         {
             var cmd = command with { UserId = userId };
             var result = await handler.HandleAsync(cmd, cancellationToken);
-            
+
             if (!result)
             {
                 return Results.NotFound("User not found in tenant.");

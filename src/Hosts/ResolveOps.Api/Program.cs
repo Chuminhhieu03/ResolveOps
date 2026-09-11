@@ -6,9 +6,11 @@ using ResolveOps.Api;
 using ResolveOps.Api.Infrastructure;
 using ResolveOps.Domain.Identity;
 using ResolveOps.Modules.Identity;
+using ResolveOps.Modules.Integrations;
 using ResolveOps.Modules.Partners;
 using ResolveOps.Modules.Shipments;
 using ResolveOps.Modules.Tenancy;
+using ResolveOps.Modules.Tracking;
 using ResolveOps.Persistence;
 using ResolveOps.Security;
 using ResolveOps.ServiceDefaults;
@@ -80,6 +82,8 @@ builder.Services.AddIdentityModule();
 builder.Services.AddTenancyModule();
 builder.Services.AddPartnersModule();
 builder.Services.AddShipmentsModule();
+builder.Services.AddIntegrationsModule();
+builder.Services.AddTrackingModule();
 
 builder.Services.AddScoped<ResolveOps.Application.IErrorMessageProvider, ResolveOps.Persistence.Services.DatabaseErrorMessageProvider>();
 
@@ -114,8 +118,8 @@ if (app.Environment.IsDevelopment())
 app.MapGet("/api/version", () => new
 {
     Product = "ResolveOps",
-    Phase = "4",
-    Description = "Shipment domain + Messaging foundation",
+    Phase = "6",
+    Description = "Tracking ingestion and normalization",
     BuildTimestamp = DateTime.UtcNow.ToString("O"),
 })
 .WithName("GetVersion")
@@ -126,6 +130,8 @@ app.MapIdentityEndpoints();
 app.MapTenancyEndpoints();
 app.MapPartnersEndpoints();
 app.MapShipmentsEndpoints();
+app.MapIntegrationsEndpoints();
+app.MapTrackingEndpoints();
 
 // ─────────────────────────────────────────────────────────────────────────
 

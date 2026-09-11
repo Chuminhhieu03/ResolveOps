@@ -40,9 +40,11 @@ builder.Services.AddSingleton<IConnection>(sp =>
     return factory.CreateConnectionAsync().GetAwaiter().GetResult();
 });
 
-// ── Messaging (Phase 5) ───────────────────────────────────────────────────
+// ── Messaging & Background Consumers (Phase 5 & 6) ──────────────────────
+builder.Services.AddScoped<IOutboxWriter, OutboxWriter>();
 builder.Services.AddSingleton<RabbitMqPublisher>();
 builder.Services.AddHostedService<OutboxPublisherService>();
+builder.Services.AddHostedService<ResolveOps.Worker.Consumers.TrackingIngestionConsumerService>();
 
 // ── SQL Server readiness health check ────────────────────────────────────
 builder.Services

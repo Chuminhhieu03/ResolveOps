@@ -1,7 +1,7 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using ResolveOps.Persistence;
 using ResolveOps.Security;
-using System.Text.Json;
 
 namespace ResolveOps.Modules.Tenancy.Features.ListTenantUsers;
 
@@ -31,8 +31,8 @@ public sealed class ListTenantUsersHandler
         var result = new List<ListTenantUsersResponse>();
         foreach (var membership in memberships)
         {
-            var roles = string.IsNullOrEmpty(membership.RolesJson) 
-                ? [] 
+            var roles = string.IsNullOrEmpty(membership.RolesJson)
+                ? []
                 : JsonSerializer.Deserialize<string[]>(membership.RolesJson) ?? [];
 
             result.Add(new ListTenantUsersResponse

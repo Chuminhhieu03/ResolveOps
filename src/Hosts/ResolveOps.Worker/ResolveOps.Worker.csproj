@@ -16,6 +16,8 @@
     <ProjectReference Include="..\..\ServiceDefaults\ResolveOps.ServiceDefaults\ResolveOps.ServiceDefaults.csproj" />
     <ProjectReference Include="..\..\BuildingBlocks\ResolveOps.Persistence\ResolveOps.Persistence.csproj" />
     <ProjectReference Include="..\..\BuildingBlocks\ResolveOps.Messaging\ResolveOps.Messaging.csproj" />
+    <ProjectReference Include="..\..\BuildingBlocks\ResolveOps.Observability\ResolveOps.Observability.csproj" />
+    <ProjectReference Include="..\..\Modules\ResolveOps.Modules.Integrations\ResolveOps.Modules.Integrations.csproj" />
   </ItemGroup>
 
 </Project>

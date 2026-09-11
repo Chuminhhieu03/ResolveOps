@@ -21,6 +21,8 @@
     <ProjectReference Include="..\..\ServiceDefaults\ResolveOps.ServiceDefaults\ResolveOps.ServiceDefaults.csproj" />
     <ProjectReference Include="..\..\Modules\ResolveOps.Modules.Partners\ResolveOps.Modules.Partners.csproj" />
     <ProjectReference Include="..\..\Modules\ResolveOps.Modules.Shipments\ResolveOps.Modules.Shipments.csproj" />
+    <ProjectReference Include="..\..\Modules\ResolveOps.Modules.Integrations\ResolveOps.Modules.Integrations.csproj" />
+    <ProjectReference Include="..\..\Modules\ResolveOps.Modules.Tracking\ResolveOps.Modules.Tracking.csproj" />
   </ItemGroup>
 
 </Project>

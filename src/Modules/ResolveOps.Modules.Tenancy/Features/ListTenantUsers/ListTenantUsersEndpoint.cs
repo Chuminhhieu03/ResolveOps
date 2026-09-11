@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using ResolveOps.Application;
-using Microsoft.AspNetCore.Mvc;
 using ResolveOps.Security;
 
 namespace ResolveOps.Modules.Tenancy.Features.ListTenantUsers;

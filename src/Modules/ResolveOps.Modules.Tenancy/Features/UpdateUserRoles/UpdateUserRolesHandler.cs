@@ -1,7 +1,7 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using ResolveOps.Persistence;
 using ResolveOps.Security;
-using System.Text.Json;
 
 namespace ResolveOps.Modules.Tenancy.Features.UpdateUserRoles;
 

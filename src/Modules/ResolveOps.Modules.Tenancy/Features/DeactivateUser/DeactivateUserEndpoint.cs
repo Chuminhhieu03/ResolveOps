@@ -17,7 +17,7 @@ public sealed class DeactivateUserEndpoint : IEndpoint
             CancellationToken cancellationToken) =>
         {
             var result = await handler.HandleAsync(userId, cancellationToken);
-            
+
             if (!result)
             {
                 return Results.NotFound("User not found in tenant.");

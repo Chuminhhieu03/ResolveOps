@@ -178,6 +178,56 @@ public sealed class Shipment : IAuditableEntity, IHasConcurrencyStamp
 
         return Result.Success();
     }
+
+    /// <summary>
+    /// Projects actual milestones and shipment status from a normalized tracking event (spec §24 Phase 6, §26.3).
+    ///
+    /// Invariants:
+    /// - Status will never regress from Delivered to InTransit due to late arriving out-of-order events.
+    /// - PickedUp sets ActualPickupAtUtc (preserving earliest timestamp) and transitions Active to InTransit.
+    /// - InTransit / OutForDelivery transitions Active to InTransit.
+    /// - Delivered sets ActualDeliveryAtUtc and transitions to Delivered.
+    /// - ConcurrencyStamp is refreshed on every projection update.
+    /// </summary>
+    public void ApplyTrackingEvent(string eventType, DateTimeOffset occurredAtUtc, TimeProvider timeProvider)
+    {
+        if (string.Equals(eventType, "PickedUp", StringComparison.OrdinalIgnoreCase))
+        {
+            if (ActualPickupAtUtc is null || occurredAtUtc < ActualPickupAtUtc.Value)
+            {
+                ActualPickupAtUtc = occurredAtUtc;
+            }
+
+            if (Status == ShipmentStatus.Active)
+            {
+                Status = ShipmentStatus.InTransit;
+            }
+        }
+        else if (string.Equals(eventType, "InTransit", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(eventType, "OutForDelivery", StringComparison.OrdinalIgnoreCase))
+        {
+            if (Status == ShipmentStatus.Active)
+            {
+                Status = ShipmentStatus.InTransit;
+            }
+            // Out-of-order safety: if already Delivered, status does NOT regress.
+        }
+        else if (string.Equals(eventType, "Delivered", StringComparison.OrdinalIgnoreCase))
+        {
+            if (ActualDeliveryAtUtc is null || occurredAtUtc > ActualDeliveryAtUtc.Value)
+            {
+                ActualDeliveryAtUtc = occurredAtUtc;
+            }
+
+            if (Status != ShipmentStatus.Cancelled)
+            {
+                Status = ShipmentStatus.Delivered;
+            }
+        }
+
+        UpdatedAtUtc = timeProvider.GetUtcNow();
+        ConcurrencyStamp = Guid.NewGuid().ToString("N");
+    }
 }
 
 /// <summary>Defines a shipment leg to be created with the shipment.</summary>

@@ -10,6 +10,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Phase 6 (Tracking ingestion and normalization)**:
+  - Added `InboundEventReceipt`, `TrackingEvent`, and `QuarantinedEvent` domain entities in `ResolveOps.Domain.Tracking`.
+  - Implemented `TrackingEventType`, `InboundReceiptStatus`, `QuarantinedEventStatus`, and `QuarantineReasonCodes` constants.
+  - Implemented `DemoCarrierAdapter` with constant-time HMAC-SHA256 signature validation (`X-Signature`), parsing, and normalization.
+  - Implemented `DemoCarrierFixtures` with documented test payloads for Pickup, InTransit, OutForDelivery, Delivered, Damage, and Unmatched events.
+  - Implemented `POST /api/integrations/carriers/{carrierCode}/webhooks/tracking` with replay guard on `(tenant_id, source_system, external_event_id)` and fast `202 Accepted` response.
+  - Implemented `POST /api/tracking-events` for manual tracking event ingestion.
+  - Implemented Quarantine management endpoints: `GET /api/integration-operations/quarantined-events`, `GET .../{id}`, `POST .../{id}/resolve`, and `POST .../{id}/reprocess`.
+  - Implemented `TrackingIngestionConsumerService` in `ResolveOps.Worker`: consumes from RabbitMQ `resolveops.tracking-ingestion`, enforces transactional Inbox idempotency, matches shipment via `ShipmentTrackingAlias` or `ExternalReference`, creates canonical `TrackingEvent`, safely projects actual milestones on `Shipment` aggregate without regression on out-of-order events, and writes `TrackingEventAcceptedV1` to outbox.
+  - Implemented OpenTelemetry metrics (`tracking.receipts.total`, `tracking.normalized.total`, `tracking.quarantined.total`, `tracking.normalization.duration.ms`) and `ActivitySource` in `ResolveOps.Observability`.
+  - Added `AddTrackingAndQuarantine` EF Core migration.
+  - Added ADR-023 (`docs/adr/ADR-023-tracking-ingestion-and-quarantine.md`) and assumption A-013.
+
 - **Phase 4 (Shipment domain)**:
   - Added `Shipment` aggregate root with `ShipmentLeg`, `ShipmentItem`, and `ShipmentTrackingAlias` child entities.
   - Implemented `ShipmentStatus`, `ShipmentLegStatus`, `TrackingAliasType` constants.
