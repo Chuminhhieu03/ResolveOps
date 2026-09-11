@@ -48,29 +48,29 @@ Read the specification before making any changes. Pay special attention to:
 
 ## Current Implementation State
 
-**Current phase:** `[VÍ DỤ: Phase 3 — Partners, locations, and business calendar]`
+**Current phase:** `Phase 4 & 5 — Shipment domain & Messaging foundation (Outbox/Inbox, RabbitMQ)`
 
-**Phases already completed:** `[VÍ DỤ: Phase 0 (structure), Phase 1 (foundation), Phase 2 (tenancy/identity)]`
+**Phases already completed:** `Phase 0 (structure), Phase 1 (foundation), Phase 2 (tenancy/identity), Phase 3 (partners/locations/calendar), + Architectural Refactoring (ErrorTemplates, ConcurrencyStamp, ModuleDiscovery)`
 
 **Repository state summary:**
 ```
-[MÔ TẢ NGẮN TRẠNG THÁI HIỆN TẠI CỦA REPO — ví dụ:
-- Solution builds successfully
-- EF Core migrations: 001_InitialSchema, 002_TenantSettings, 003_Identity
-- Tests passing: 47 unit, 12 integration
-- AGENTS.md updated to Phase 2 complete
-- Known issue: refresh token rotation test is skipped (reason: X)
-]
+- Solution builds successfully (0 errors, 0 warnings).
+- Clean Modular Monolith architecture with .NET 10 Minimal APIs.
+- Auto-Discovery implemented for Modules and Endpoints (`AddHandlersFromAssembly`, `MapEndpoints`).
+- DomainErrors unified via `ErrorTemplates` table and `DatabaseErrorMessageProvider`.
+- All mutable entities use `string ConcurrencyStamp` for optimistic concurrency and implement `IAuditableEntity`.
+- EF Core migrations updated (`RefactorArchitecture` applied).
+- Tests: The user explicitly stated "Tôi không cần UT hay IT Test đâu" (I do not need UT or IT tests), so ALL test requirements are currently waived.
 ```
 
 **Stopping point / specific task this session:**
 ```
-[MÔ TẢ CỤ THỂ — ví dụ:
-- Stopped after implementing CarrierPartner aggregate
-- Need to implement: BusinessCalendar with working days and holiday overrides
-- Then implement: SLA calculation using business calendar
-- Then: integration tests for cross-midnight and holiday scenarios
-]
+- Need to implement Phase 4 (Shipment domain features) AND Phase 5 (Messaging foundation).
+- Phase 4: Define Shipment, ShipmentItem, and Tracking entities. Implement Endpoints and Handlers for Shipment (Create, Update, Get, List).
+- Phase 5: Implement Outbox and Inbox patterns (database tables, EF interceptors or background jobs).
+- Phase 5: Integrate RabbitMQ for publishing Outbox messages and consuming into Inbox.
+- Focus strictly on clean architecture and mapping to problem details using the new DomainErrorResult pattern.
+- Do NOT write Unit Tests or Integration Tests.
 ```
 
 ## Your Task

@@ -9,11 +9,13 @@
     <PackageReference Include="Aspire.StackExchange.Redis" />
     <PackageReference Include="Serilog.AspNetCore" />
     <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
+    <PackageReference Include="RabbitMQ.Client" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\ServiceDefaults\ResolveOps.ServiceDefaults\ResolveOps.ServiceDefaults.csproj" />
     <ProjectReference Include="..\..\BuildingBlocks\ResolveOps.Persistence\ResolveOps.Persistence.csproj" />
+    <ProjectReference Include="..\..\BuildingBlocks\ResolveOps.Messaging\ResolveOps.Messaging.csproj" />
   </ItemGroup>
 
 </Project>

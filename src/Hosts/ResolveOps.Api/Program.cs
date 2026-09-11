@@ -7,6 +7,7 @@ using ResolveOps.Api.Infrastructure;
 using ResolveOps.Domain.Identity;
 using ResolveOps.Modules.Identity;
 using ResolveOps.Modules.Partners;
+using ResolveOps.Modules.Shipments;
 using ResolveOps.Modules.Tenancy;
 using ResolveOps.Persistence;
 using ResolveOps.Security;
@@ -78,6 +79,7 @@ builder.Services.AddSingleton<IAuthorizationHandler, TenantMembershipHandler>();
 builder.Services.AddIdentityModule();
 builder.Services.AddTenancyModule();
 builder.Services.AddPartnersModule();
+builder.Services.AddShipmentsModule();
 
 builder.Services.AddScoped<ResolveOps.Application.IErrorMessageProvider, ResolveOps.Persistence.Services.DatabaseErrorMessageProvider>();
 
@@ -112,8 +114,8 @@ if (app.Environment.IsDevelopment())
 app.MapGet("/api/version", () => new
 {
     Product = "ResolveOps",
-    Phase = "2",
-    Description = "Tenancy and identity",
+    Phase = "4",
+    Description = "Shipment domain + Messaging foundation",
     BuildTimestamp = DateTime.UtcNow.ToString("O"),
 })
 .WithName("GetVersion")
@@ -123,6 +125,7 @@ app.MapGet("/api/version", () => new
 app.MapIdentityEndpoints();
 app.MapTenancyEndpoints();
 app.MapPartnersEndpoints();
+app.MapShipmentsEndpoints();
 
 // ─────────────────────────────────────────────────────────────────────────
 

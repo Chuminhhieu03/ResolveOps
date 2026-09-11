@@ -20,10 +20,10 @@ and adds current phase status. When in conflict, the spec wins.
 
 | Field | Value |
 |---|---|
-| **Current phase** | Phase 4 — Shipment domain |
+| **Current phase** | Phase 6 — Tracking ingestion and normalization |
 | **Phase status** | ⬜ Not started |
-| **Next phase** | Phase 5 — Messaging foundation: outbox, inbox, RabbitMQ |
-| **Last updated** | 2026-09-10 |
+| **Next phase** | Phase 7 — Exception policy engine and case creation |
+| **Last updated** | 2026-09-11 |
 
 ### Phase 0 deliverables completed
 
@@ -152,8 +152,8 @@ The agent MUST NOT:
 | 1 | Runtime, Aspire, database, observability foundation | ✅ Complete |
 | 2 | Tenancy and identity | ✅ Complete |
 | 3 | Partners, locations, business calendar | ✅ Complete |
-| 4 | Shipment domain | ⬜ Not started |
-| 5 | Messaging foundation: outbox, inbox, RabbitMQ | ⬜ Not started |
+| 4 | Shipment domain | ✅ Complete |
+| 5 | Messaging foundation: outbox, inbox, RabbitMQ | ✅ Complete |
 | 6 | Tracking ingestion and normalization | ⬜ Not started |
 | 7 | Exception policy engine and case creation | ⬜ Not started |
 | 8 | Exception case workflow, tasks, SLA | ⬜ Not started |

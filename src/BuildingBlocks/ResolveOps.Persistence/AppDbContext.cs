@@ -4,7 +4,9 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using ResolveOps.Domain;
 using ResolveOps.Domain.Identity;
+using ResolveOps.Domain.Messaging;
 using ResolveOps.Domain.Partners;
+using ResolveOps.Domain.Shipments;
 using ResolveOps.Domain.Tenancy;
 using ResolveOps.Persistence.Conventions;
 
@@ -62,6 +64,17 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Location> Locations => Set<Location>();
     public DbSet<BusinessCalendar> BusinessCalendars => Set<BusinessCalendar>();
+
+    // ── Shipments (Phase 4) ───────────────────────────────────────────────────
+    public DbSet<Shipment> Shipments => Set<Shipment>();
+    public DbSet<ShipmentLeg> ShipmentLegs => Set<ShipmentLeg>();
+    public DbSet<ShipmentItem> ShipmentItems => Set<ShipmentItem>();
+    public DbSet<ShipmentTrackingAlias> ShipmentTrackingAliases => Set<ShipmentTrackingAlias>();
+
+    // ── Messaging (Phase 5) ───────────────────────────────────────────────────
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+    public DbSet<InboxMessage> InboxMessages => Set<InboxMessage>();
+    public DbSet<IdempotencyRecord> IdempotencyRecords => Set<IdempotencyRecord>();
 
     // ── System ───────────────────────────────────────────────────────────────
     public DbSet<ErrorTemplate> ErrorTemplates => Set<ErrorTemplate>();
@@ -142,6 +155,23 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
 
         builder.Entity<BusinessCalendar>()
             .HasQueryFilter(bc => _currentTenantId == null || bc.TenantId == _currentTenantId);
+
+        // Shipments — all entities are tenant-scoped (Phase 4)
+        builder.Entity<Shipment>()
+            .HasQueryFilter(s => _currentTenantId == null || s.TenantId == _currentTenantId);
+
+        builder.Entity<ShipmentLeg>()
+            .HasQueryFilter(l => _currentTenantId == null || l.TenantId == _currentTenantId);
+
+        builder.Entity<ShipmentItem>()
+            .HasQueryFilter(i => _currentTenantId == null || i.TenantId == _currentTenantId);
+
+        builder.Entity<ShipmentTrackingAlias>()
+            .HasQueryFilter(a => _currentTenantId == null || a.TenantId == _currentTenantId);
+
+        // Messaging — OutboxMessage has nullable TenantId (system events have no tenant).
+        // No global filter on OutboxMessage/InboxMessage/IdempotencyRecord — the publisher
+        // and admin tooling need unfiltered access regardless of request tenant context.
 
         // ── Snake_case column names ────────────────────────────────────────────
         // Applied last so configurations' explicit column names are preserved.

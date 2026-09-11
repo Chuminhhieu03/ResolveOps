@@ -37,6 +37,7 @@ public static class AuthorizationPolicies
 
     public const string RequireCreateShipment = "require_create_shipment";
     public const string RequireViewShipments = "require_view_shipments";
+    public const string RequireCancelShipment = "require_cancel_shipment";
 
     public const string RequireViewCarriers = "require_view_carriers";
     public const string RequireManageCarriers = "require_manage_carriers";
@@ -73,6 +74,7 @@ public static class AuthorizationPolicies
             .AddPolicy(RequireDownloadEvidence, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanDownloadEvidence))
             .AddPolicy(RequireCreateShipment, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanCreateShipment))
             .AddPolicy(RequireViewShipments, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanViewShipments))
+            .AddPolicy(RequireCancelShipment, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanCancelShipment))
             .AddPolicy(RequireViewCarriers, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanViewCarriers))
             .AddPolicy(RequireManageCarriers, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanManageCarriers))
             .AddPolicy(RequireViewCustomers, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanViewCustomers))

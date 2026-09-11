@@ -20,6 +20,7 @@
     <ProjectReference Include="..\..\Modules\ResolveOps.Modules.Tenancy\ResolveOps.Modules.Tenancy.csproj" />
     <ProjectReference Include="..\..\ServiceDefaults\ResolveOps.ServiceDefaults\ResolveOps.ServiceDefaults.csproj" />
     <ProjectReference Include="..\..\Modules\ResolveOps.Modules.Partners\ResolveOps.Modules.Partners.csproj" />
+    <ProjectReference Include="..\..\Modules\ResolveOps.Modules.Shipments\ResolveOps.Modules.Shipments.csproj" />
   </ItemGroup>
 
 </Project>

@@ -10,14 +10,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Phase 3 (Partners & Locations)** implementation:
-  - Added `Carrier`, `Customer`, `Location`, and `BusinessCalendar` aggregates/entities.
-  - Added full Vertical Slice architecture for CRUD operations with `FluentValidation` and Minimal APIs.
-  - Implemented Domain logic for managing Business Calendar Holidays.
-  - Entity Framework Core configurations and Tenant query filters for data isolation.
-  - Optimistic concurrency (Version tokens) across Partners modules.
-  - Registered new endpoints and permission policies in `ResolveOps.Security`.
-  - Added `AddPartnersAndCalendar` EF Core migration.
+- **Phase 4 (Shipment domain)**:
+  - Added `Shipment` aggregate root with `ShipmentLeg`, `ShipmentItem`, and `ShipmentTrackingAlias` child entities.
+  - Implemented `ShipmentStatus`, `ShipmentLegStatus`, `TrackingAliasType` constants.
+  - Implemented `CreateShipment` with API idempotency key support (`Idempotency-Key` header).
+  - Implemented `GetShipment`, `ListShipments` (offset pagination, status filter), and `CancelShipment`.
+  - Optimistic concurrency via `ConcurrencyStamp` on cancel.
+  - Duplicate external reference guard with `UniqueConstraintException` race condition handling.
+  - `ShipmentCreatedV1` integration event written atomically with aggregate via outbox.
+  - EF Core configurations for `shipments`, `shipment_legs`, `shipment_items`, `shipment_tracking_aliases`.
+  - Tenant query filters for all Shipment entities.
+  - Added `RequireCancelShipment` permission/policy to `ResolveOps.Security`.
+  - Registered `ShipmentsModule` in `ResolveOps.Api`.
+
+- **Phase 5 (Messaging foundation)**:
+  - Added `OutboxMessage`, `InboxMessage`, `IdempotencyRecord` domain entities.
+  - Implemented `IOutboxWriter` / `OutboxWriter` — writes outbox rows atomically in handler `SaveChanges`.
+  - Implemented `OutboxPublisherService` (`BackgroundService` in `ResolveOps.Worker`) — polls `outbox_messages`, publishes via RabbitMQ, exponential back-off up to 5 attempts.
+  - Implemented `RabbitMqPublisher` using `RabbitMQ.Client v7` async API; declares durable fanout exchange per event type.
+  - Implemented `IntegrationEventEnvelope` standard message envelope.
+  - Implemented `ShipmentCreatedV1` integration event.
+  - EF Core configurations for `outbox_messages` (with required publisher index), `inbox_messages`, `idempotency_records`.
+  - Registered `RabbitMqPublisher` and `OutboxPublisherService` in `ResolveOps.Worker`.
+  - Added `AddShipmentsAndMessaging` EF Core migration.
 
 ## [2026-09-03]
 - **Phase 2: Tenancy and Identity**

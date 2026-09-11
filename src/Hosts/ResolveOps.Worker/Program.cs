@@ -1,3 +1,5 @@
+using RabbitMQ.Client;
+using ResolveOps.Messaging;
 using ResolveOps.Persistence;
 using ResolveOps.ServiceDefaults;
 
@@ -17,6 +19,30 @@ builder.AddSqlServerDbContext<AppDbContext>("resolveops");
 
 // ── Cache: Redis via Aspire integration ──────────────────────────────────
 builder.AddRedisClient("redis");
+
+// ── RabbitMQ connection (Phase 5) ─────────────────────────────────────────
+// Connection string name "rabbitmq" must be defined in Aspire AppHost or appsettings.
+var rabbitMqUri = builder.Configuration["ConnectionStrings:rabbitmq"]
+    ?? "amqp://guest:guest@localhost:5672/";
+
+builder.Services.AddSingleton<IConnectionFactory>(_ =>
+    new ConnectionFactory
+    {
+        Uri = new Uri(rabbitMqUri),
+        AutomaticRecoveryEnabled = true,
+    });
+
+builder.Services.AddSingleton<IConnection>(sp =>
+{
+    var factory = sp.GetRequiredService<IConnectionFactory>();
+    // CreateConnectionAsync resolved synchronously here for singleton registration.
+    // Phase 16 will replace with IAsyncConnectionFactory if needed.
+    return factory.CreateConnectionAsync().GetAwaiter().GetResult();
+});
+
+// ── Messaging (Phase 5) ───────────────────────────────────────────────────
+builder.Services.AddSingleton<RabbitMqPublisher>();
+builder.Services.AddHostedService<OutboxPublisherService>();
 
 // ── SQL Server readiness health check ────────────────────────────────────
 builder.Services
