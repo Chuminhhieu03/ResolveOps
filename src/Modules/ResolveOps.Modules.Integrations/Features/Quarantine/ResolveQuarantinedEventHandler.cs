@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using ResolveOps.Domain;
 using ResolveOps.Domain.Tracking;
@@ -116,9 +115,6 @@ internal sealed class ResolveQuarantinedEventHandler
         // Write TrackingEventAcceptedV1 to outbox (spec §17.3)
         var outboxEvent = new TrackingEventAcceptedV1
         {
-            OccurredAtUtc = occurredAt,
-            TenantId = tenantId,
-            CorrelationId = correlationId,
             TrackingEventId = trackingEvent.Id,
             ShipmentId = shipment.Id,
             ShipmentLegId = null,
@@ -126,7 +122,7 @@ internal sealed class ResolveQuarantinedEventHandler
             NormalizedEventType = eventType,
         };
 
-        _outboxWriter.Write(outboxEvent);
+        _outboxWriter.Write(outboxEvent, tenantId, correlationId);
 
         await _dbContext.SaveChangesAsync(cancellationToken);
         TrackingMetrics.NormalizedTotal.Add(1);

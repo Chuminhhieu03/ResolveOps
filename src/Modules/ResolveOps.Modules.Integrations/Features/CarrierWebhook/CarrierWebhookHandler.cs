@@ -155,13 +155,10 @@ internal sealed class CarrierWebhookHandler
         // ── 5. Outbox: publish normalization request (spec §24 Phase 6 task 5) ──
         var outboxEvent = new TrackingIngestionRequestedV1
         {
-            OccurredAtUtc = now,
-            TenantId = tenantId,
-            CorrelationId = correlationId,
             ReceiptId = receipt.Id,
         };
 
-        _outboxWriter.Write(outboxEvent);
+        _outboxWriter.Write(outboxEvent, tenantId, correlationId);
 
         try
         {

@@ -28,8 +28,8 @@ internal sealed class UpdateTenantHandler
             return DomainError.ResourceNotFound with { Message = "Tenant not found." };
         }
 
-        // Apply EF's original value token for optimistic concurrency
-        _dbContext.Entry(tenant).Property(t => t.ConcurrencyStamp).OriginalValue = command.ConcurrencyStamp;
+        // Assign client's concurrency stamp; AppDbContext handles original value and new stamp generation
+        tenant.ConcurrencyStamp = command.ConcurrencyStamp;
 
         tenant.Update(command.Name, command.DefaultTimezone, command.DefaultCurrency, _timeProvider);
 

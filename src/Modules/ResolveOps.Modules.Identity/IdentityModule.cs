@@ -1,15 +1,9 @@
 using FluentValidation;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using ResolveOps.Application;
 using ResolveOps.Modules.Identity.Features.Audit;
 using ResolveOps.Modules.Identity.Features.Auth;
-using ResolveOps.Modules.Identity.Features.ChangePassword;
-using ResolveOps.Modules.Identity.Features.GetCurrentUser;
-using ResolveOps.Modules.Identity.Features.Login;
-using ResolveOps.Modules.Identity.Features.Logout;
-using ResolveOps.Modules.Identity.Features.Refresh;
 using ResolveOps.Modules.Identity.Infrastructure;
 using ResolveOps.Persistence;
 using ResolveOps.Security;
@@ -39,7 +33,8 @@ public static class IdentityModule
 
     public static IEndpointRouteBuilder MapIdentityEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapEndpoints();
+        var assembly = typeof(IdentityModule).Assembly;
+        endpoints.MapEndpointsFromAssembly(assembly);
         return endpoints;
     }
 }

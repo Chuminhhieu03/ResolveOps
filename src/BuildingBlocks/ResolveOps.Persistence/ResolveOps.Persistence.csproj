@@ -19,6 +19,7 @@
     <PackageReference Include="EntityFrameworkCore.Exceptions.SqlServer" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
       <!-- Design-time only: never deployed to production. -->
       <PrivateAssets>all</PrivateAssets>

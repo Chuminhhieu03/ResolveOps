@@ -173,8 +173,6 @@ public sealed class Shipment : IAuditableEntity, IHasConcurrencyStamp
         }
 
         Status = ShipmentStatus.Cancelled;
-        UpdatedAtUtc = timeProvider.GetUtcNow();
-        ConcurrencyStamp = Guid.NewGuid().ToString("N");
 
         return Result.Success();
     }
@@ -187,9 +185,8 @@ public sealed class Shipment : IAuditableEntity, IHasConcurrencyStamp
     /// - PickedUp sets ActualPickupAtUtc (preserving earliest timestamp) and transitions Active to InTransit.
     /// - InTransit / OutForDelivery transitions Active to InTransit.
     /// - Delivered sets ActualDeliveryAtUtc and transitions to Delivered.
-    /// - ConcurrencyStamp is refreshed on every projection update.
     /// </summary>
-    public void ApplyTrackingEvent(string eventType, DateTimeOffset occurredAtUtc, TimeProvider timeProvider)
+    public void ApplyTrackingEvent(string eventType, DateTimeOffset occurredAtUtc, TimeProvider? timeProvider = null)
     {
         if (string.Equals(eventType, "PickedUp", StringComparison.OrdinalIgnoreCase))
         {
@@ -224,9 +221,6 @@ public sealed class Shipment : IAuditableEntity, IHasConcurrencyStamp
                 Status = ShipmentStatus.Delivered;
             }
         }
-
-        UpdatedAtUtc = timeProvider.GetUtcNow();
-        ConcurrencyStamp = Guid.NewGuid().ToString("N");
     }
 }
 

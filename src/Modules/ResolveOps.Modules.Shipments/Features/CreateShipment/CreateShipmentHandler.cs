@@ -15,9 +15,6 @@ namespace ResolveOps.Modules.Shipments.Features.CreateShipment;
 
 internal sealed class CreateShipmentHandler
 {
-    private const string IdempotencyScope = "CreateShipment";
-    private const int IdempotencyExpiryHours = 24;
-
     private readonly AppDbContext _dbContext;
     private readonly ITenantContext _tenantContext;
     private readonly TimeProvider _timeProvider;
@@ -37,41 +34,11 @@ internal sealed class CreateShipmentHandler
 
     public async Task<Result<CreateShipmentResponse>> HandleAsync(
         CreateShipmentCommand command,
-        string? idempotencyKey,
         string correlationId,
         CancellationToken cancellationToken)
     {
         var tenantId = _tenantContext.TenantId.Value;
         var now = _timeProvider.GetUtcNow();
-
-        // ── Idempotency check (spec §24 Phase 4 task 6) ───────────────────────
-        if (!string.IsNullOrWhiteSpace(idempotencyKey))
-        {
-            var requestHash = ComputeRequestHash(command);
-
-            var existing = await _dbContext.IdempotencyRecords
-                .AsNoTracking()
-                .FirstOrDefaultAsync(
-                    r => r.TenantId == tenantId
-                         && r.Scope == IdempotencyScope
-                         && r.IdempotencyKey == idempotencyKey,
-                    cancellationToken);
-
-            if (existing != null)
-            {
-                if (existing.RequestHash != requestHash)
-                {
-                    // Same key, different content → 409 Conflict per spec §15.11
-                    return DomainError.Failure(
-                        "ERR_IDEMPOTENCY_KEY_CONFLICT",
-                        "The idempotency key was previously used with a different request body.");
-                }
-
-                // Exact replay → return original response
-                var replayId = existing.ResourceId ?? Guid.Empty;
-                return new CreateShipmentResponse(replayId);
-            }
-        }
 
         // ── Business invariant: unique (tenant, source_system, external_reference) ──
         var normalizedRef = command.ExternalReference.Trim();
@@ -135,9 +102,6 @@ internal sealed class CreateShipmentHandler
         // ── Outbox: ShipmentCreatedV1 in the same transaction (spec §24 Phase 4 task 8) ──
         var integrationEvent = new ShipmentCreatedV1
         {
-            OccurredAtUtc = now,
-            TenantId = tenantId,
-            CorrelationId = correlationId,
             ShipmentId = shipment.Id,
             ExternalReference = shipment.ExternalReference,
             SourceSystem = shipment.SourceSystem,
@@ -149,32 +113,11 @@ internal sealed class CreateShipmentHandler
             LegCount = shipment.Legs.Count,
         };
 
-        _outboxWriter.Write(integrationEvent);
-
-        // ── Idempotency record ────────────────────────────────────────────────
-        if (!string.IsNullOrWhiteSpace(idempotencyKey))
-        {
-            var requestHash = ComputeRequestHash(command);
-            var response = new CreateShipmentResponse(shipment.Id);
-            var responseBody = JsonSerializer.Serialize(response);
-
-            var idempotencyRecord = IdempotencyRecord.Create(
-                tenantId,
-                IdempotencyScope,
-                idempotencyKey,
-                requestHash,
-                201,
-                responseBody,
-                shipment.Id,
-                now,
-                now.AddHours(IdempotencyExpiryHours));
-
-            _dbContext.IdempotencyRecords.Add(idempotencyRecord);
-        }
+        _outboxWriter.Write(integrationEvent, tenantId, correlationId);
 
         try
         {
-            // Single transaction: shipment + outbox + idempotency record
+            // Single transaction: shipment + outbox
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
         catch (UniqueConstraintException)
@@ -186,12 +129,5 @@ internal sealed class CreateShipmentHandler
         }
 
         return new CreateShipmentResponse(shipment.Id);
-    }
-
-    private static string ComputeRequestHash(CreateShipmentCommand command)
-    {
-        var json = JsonSerializer.Serialize(command);
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(json));
-        return Convert.ToHexString(bytes).ToLowerInvariant();
     }
 }

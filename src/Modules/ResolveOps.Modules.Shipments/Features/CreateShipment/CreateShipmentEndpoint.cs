@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using ResolveOps.Application;
+using ResolveOps.Application.Filters;
 using ResolveOps.Security;
 
 namespace ResolveOps.Modules.Shipments.Features.CreateShipment;
@@ -24,13 +25,10 @@ public sealed class CreateShipmentEndpoint : IEndpoint
                 return Results.ValidationProblem(validationResult.ToDictionary());
             }
 
-            // Read Idempotency-Key header (optional per spec §16.5)
-            var idempotencyKey = httpContext.Request.Headers["Idempotency-Key"].FirstOrDefault();
-
             // CorrelationId from middleware
             var correlationId = httpContext.TraceIdentifier;
 
-            var result = await handler.HandleAsync(command, idempotencyKey, correlationId, cancellationToken);
+            var result = await handler.HandleAsync(command, correlationId, cancellationToken);
 
             return result.Match(
                 onSuccess: response => Results.Created($"/api/shipments/{response.ShipmentId}", response),
@@ -38,6 +36,7 @@ public sealed class CreateShipmentEndpoint : IEndpoint
         })
         .WithName("CreateShipment")
         .WithTags("Shipments")
+        .WithIdempotency("shipments.create")
         .Produces<CreateShipmentResponse>(StatusCodes.Status201Created)
         .ProducesValidationProblem()
         .ProducesProblem(StatusCodes.Status409Conflict)

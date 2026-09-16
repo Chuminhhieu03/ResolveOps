@@ -32,13 +32,7 @@ internal sealed class CancelShipmentHandler
             return DomainError.ResourceNotFound;
         }
 
-        // Optimistic concurrency (ADR-006)
-        if (shipment.ConcurrencyStamp != command.ConcurrencyStamp)
-        {
-            return DomainError.Failure(
-                "ERR_CONCURRENCY_CONFLICT",
-                "The shipment was modified by another operation. Refresh and try again.");
-        }
+        shipment.ConcurrencyStamp = command.ConcurrencyStamp;
 
         var cancelResult = shipment.Cancel(_timeProvider);
         if (!cancelResult.IsSuccess)
@@ -49,6 +43,12 @@ internal sealed class CancelShipmentHandler
         try
         {
             await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return DomainError.Failure(
+                "ERR_CONCURRENCY_CONFLICT",
+                "The shipment was modified by another operation. Refresh and try again.");
         }
         catch (UniqueConstraintException)
         {

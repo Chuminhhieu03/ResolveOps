@@ -25,8 +25,8 @@ internal sealed class UpdateCustomerHandler
             return DomainError.ResourceNotFound with { Message = "Customer not found." };
         }
 
-        // Apply EF's original value for optimistic concurrency
-        _dbContext.Entry(customer).Property(c => c.ConcurrencyStamp).OriginalValue = command.ConcurrencyStamp;
+        // Assign client's concurrency stamp; AppDbContext handles original value and new stamp generation
+        customer.ConcurrencyStamp = command.ConcurrencyStamp;
 
         customer.Update(
             command.Name,

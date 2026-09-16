@@ -77,7 +77,7 @@ public static class DemoCarrierAdapter
         return Convert.ToHexString(hash).ToLowerInvariant();
     }
 
-    private static readonly JsonSerializerOptions SerializerOptions = new()
+    private static readonly JsonSerializerOptions _serializerOptions = new()
     {
         PropertyNameCaseInsensitive = true,
     };
@@ -96,7 +96,7 @@ public static class DemoCarrierAdapter
         DemoCarrierPayload? dto;
         try
         {
-            dto = JsonSerializer.Deserialize<DemoCarrierPayload>(rawJson, SerializerOptions);
+            dto = JsonSerializer.Deserialize<DemoCarrierPayload>(rawJson, _serializerOptions);
         }
         catch (JsonException)
         {

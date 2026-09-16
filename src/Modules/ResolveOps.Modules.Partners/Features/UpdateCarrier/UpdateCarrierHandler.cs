@@ -25,8 +25,8 @@ internal sealed class UpdateCarrierHandler
             return DomainError.ResourceNotFound with { Message = "Carrier not found." };
         }
 
-        // Apply EF's original value for optimistic concurrency
-        _dbContext.Entry(carrier).Property(c => c.ConcurrencyStamp).OriginalValue = command.ConcurrencyStamp;
+        // Assign client's concurrency stamp; AppDbContext handles original value and new stamp generation
+        carrier.ConcurrencyStamp = command.ConcurrencyStamp;
 
         carrier.Update(
             command.Name,

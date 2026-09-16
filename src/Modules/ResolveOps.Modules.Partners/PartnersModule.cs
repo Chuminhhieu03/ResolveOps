@@ -46,7 +46,8 @@ public static class PartnersModule
 
     public static IEndpointRouteBuilder MapPartnersEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapEndpoints();
+        var assembly = typeof(PartnersModule).Assembly;
+        endpoints.MapEndpointsFromAssembly(assembly);
         return endpoints;
     }
 }

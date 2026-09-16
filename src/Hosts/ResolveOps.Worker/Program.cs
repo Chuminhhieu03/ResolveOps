@@ -40,6 +40,12 @@ builder.Services.AddSingleton<IConnection>(sp =>
     return factory.CreateConnectionAsync().GetAwaiter().GetResult();
 });
 
+// ── Options ──────────────────────────────────────────────────────────────
+builder.Services.Configure<ResolveOps.Messaging.Options.OutboxOptions>(
+    builder.Configuration.GetSection(ResolveOps.Messaging.Options.OutboxOptions.SectionName));
+builder.Services.Configure<ResolveOps.Messaging.Options.RabbitMqConsumerOptions>(
+    builder.Configuration.GetSection(ResolveOps.Messaging.Options.RabbitMqConsumerOptions.SectionName));
+
 // ── Messaging & Background Consumers (Phase 5 & 6) ──────────────────────
 builder.Services.AddScoped<IOutboxWriter, OutboxWriter>();
 builder.Services.AddSingleton<RabbitMqPublisher>();

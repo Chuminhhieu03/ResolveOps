@@ -46,8 +46,8 @@ internal sealed class TenantSettingsHandlers
         }
         else
         {
-            // Update existing with optimistic concurrency check
-            _dbContext.Entry(settings).Property(s => s.ConcurrencyStamp).OriginalValue = command.ConcurrencyStamp;
+            // Assign client's concurrency stamp; AppDbContext handles original value and new stamp generation
+            settings.ConcurrencyStamp = command.ConcurrencyStamp;
             settings.Update(command.SettingsJson, _timeProvider);
         }
 

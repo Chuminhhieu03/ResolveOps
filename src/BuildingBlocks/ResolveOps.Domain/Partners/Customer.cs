@@ -71,15 +71,11 @@ public sealed class Customer : IAuditableEntity, IHasConcurrencyStamp
         Name = name.Trim();
         Priority = priority;
         DefaultTimezone = defaultTimezone;
-        UpdatedAtUtc = timeProvider.GetUtcNow();
-        ConcurrencyStamp = Guid.NewGuid().ToString("N");
     }
 
-    public void Deactivate(TimeProvider timeProvider)
+    public void Deactivate(TimeProvider? timeProvider = null)
     {
         Status = CustomerStatus.Inactive;
-        UpdatedAtUtc = timeProvider.GetUtcNow();
-        ConcurrencyStamp = Guid.NewGuid().ToString("N");
     }
 
     public bool IsActive => Status == CustomerStatus.Active;

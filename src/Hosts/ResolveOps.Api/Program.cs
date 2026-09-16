@@ -29,8 +29,17 @@ builder.Services.AddOpenApi();
 // ── Persistence: EF Core via Aspire integration ───────────────────────────
 builder.AddSqlServerDbContext<AppDbContext>("resolveops");
 
-// ── Cache: Redis via Aspire integration ──────────────────────────────────
+// ── Cache: Redis & HybridCache via Aspire integration ────────────────────
 builder.AddRedisClient("redis");
+builder.AddRedisDistributedCache("redis");
+builder.Services.AddHybridCache(options =>
+{
+    options.DefaultEntryOptions = new Microsoft.Extensions.Caching.Hybrid.HybridCacheEntryOptions
+    {
+        Expiration = TimeSpan.FromHours(12),
+        LocalCacheExpiration = TimeSpan.FromHours(1)
+    };
+});
 
 // ── Identity Core ─────────────────────────────────────────────────────────
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
@@ -86,6 +95,13 @@ builder.Services.AddIntegrationsModule();
 builder.Services.AddTrackingModule();
 
 builder.Services.AddScoped<ResolveOps.Application.IErrorMessageProvider, ResolveOps.Persistence.Services.DatabaseErrorMessageProvider>();
+builder.Services.AddScoped<ResolveOps.Application.Idempotency.IIdempotencyStore, ResolveOps.Persistence.Services.EfCoreIdempotencyStore>();
+
+// ── Options ──────────────────────────────────────────────────────────────
+builder.Services.Configure<ResolveOps.Messaging.Options.OutboxOptions>(
+    builder.Configuration.GetSection(ResolveOps.Messaging.Options.OutboxOptions.SectionName));
+builder.Services.Configure<ResolveOps.Messaging.Options.RabbitMqConsumerOptions>(
+    builder.Configuration.GetSection(ResolveOps.Messaging.Options.RabbitMqConsumerOptions.SectionName));
 
 // ── Health Checks ─────────────────────────────────────────────────────────
 builder.Services

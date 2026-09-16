@@ -1,13 +1,8 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ResolveOps.Application;
 using ResolveOps.Messaging;
-using ResolveOps.Modules.Shipments.Features.CancelShipment;
-using ResolveOps.Modules.Shipments.Features.CreateShipment;
-using ResolveOps.Modules.Shipments.Features.GetShipment;
-using ResolveOps.Modules.Shipments.Features.ListShipments;
 using ResolveOps.Persistence;
 
 namespace ResolveOps.Modules.Shipments;
@@ -38,7 +33,8 @@ public static class ShipmentsModule
 
     public static IEndpointRouteBuilder MapShipmentsEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapEndpoints();
+        var assembly = typeof(ShipmentsModule).Assembly;
+        endpoints.MapEndpointsFromAssembly(assembly);
         return endpoints;
     }
 }

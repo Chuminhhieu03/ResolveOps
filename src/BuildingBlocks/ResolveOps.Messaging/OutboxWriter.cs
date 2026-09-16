@@ -23,19 +23,37 @@ public sealed class OutboxWriter : IOutboxWriter
         _timeProvider = timeProvider;
     }
 
-    public void Write(IIntegrationEvent integrationEvent, string? causationId = null)
+    public void Write(
+        IIntegrationEvent integrationEvent,
+        Guid? tenantId,
+        string correlationId,
+        string? causationId = null)
     {
-        var payload = JsonSerializer.Serialize(integrationEvent);
+        var now = _timeProvider.GetUtcNow();
+        var domainFactPayload = JsonSerializer.Serialize(integrationEvent, integrationEvent.GetType());
+
+        var envelope = new IntegrationEventEnvelope
+        {
+            EventType = integrationEvent.EventType,
+            EventVersion = integrationEvent.EventVersion,
+            OccurredAtUtc = now,
+            TenantId = tenantId,
+            CorrelationId = correlationId,
+            CausationId = causationId,
+            Payload = domainFactPayload,
+        };
+
+        var envelopePayload = JsonSerializer.Serialize(envelope);
 
         var outboxMessage = OutboxMessage.Create(
-            tenantId: integrationEvent.TenantId,
+            tenantId: tenantId,
             eventType: integrationEvent.EventType,
             eventVersion: integrationEvent.EventVersion,
-            payload: payload,
-            occurredAtUtc: integrationEvent.OccurredAtUtc,
-            correlationId: integrationEvent.CorrelationId,
+            payload: envelopePayload,
+            occurredAtUtc: now,
+            correlationId: correlationId,
             causationId: causationId,
-            partitionKey: integrationEvent.TenantId?.ToString());
+            partitionKey: tenantId?.ToString());
 
         _dbContext.OutboxMessages.Add(outboxMessage);
     }

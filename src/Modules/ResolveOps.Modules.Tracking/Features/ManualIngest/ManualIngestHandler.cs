@@ -14,7 +14,7 @@ namespace ResolveOps.Modules.Tracking.Features.ManualIngest;
 
 internal sealed class ManualIngestHandler
 {
-    private const string SourceSystemManual = "MANUAL";
+    private const string _sourceSystemManual = "MANUAL";
 
     private readonly AppDbContext _dbContext;
     private readonly ITenantContext _tenantContext;
@@ -60,7 +60,7 @@ internal sealed class ManualIngestHandler
         var receipt = InboundEventReceipt.Create(
             tenantId: tenantId,
             carrierId: command.CarrierId,
-            sourceSystem: SourceSystemManual,
+            sourceSystem: _sourceSystemManual,
             externalEventId: externalEventId,
             idempotencyKey: null,
             payloadHash: payloadHash,
@@ -74,13 +74,10 @@ internal sealed class ManualIngestHandler
 
         var outboxEvent = new TrackingIngestionRequestedV1
         {
-            OccurredAtUtc = now,
-            TenantId = tenantId,
-            CorrelationId = correlationId,
             ReceiptId = receipt.Id,
         };
 
-        _outboxWriter.Write(outboxEvent);
+        _outboxWriter.Write(outboxEvent, tenantId, correlationId);
 
         await _dbContext.SaveChangesAsync(cancellationToken);
         TrackingMetrics.ReceiptsTotal.Add(1);

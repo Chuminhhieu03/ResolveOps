@@ -17,6 +17,6 @@
   <!-- Suppress specific warnings that are intentional across the codebase -->
   <!-- CS1591 = missing XML doc comment; suppressed globally since we do not require XML docs on internals -->
   <PropertyGroup>
-    <NoWarn>CS1591</NoWarn>
+    <NoWarn>$(NoWarn);CS1591;EXTEXP0018</NoWarn>
   </PropertyGroup>
 </Project>

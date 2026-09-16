@@ -4,14 +4,9 @@ using ResolveOps.Domain;
 
 namespace ResolveOps.Application;
 
-public sealed class DomainErrorResult : IResult
+public sealed class DomainErrorResult(DomainError error) : IResult
 {
-    private readonly DomainError _error;
-
-    public DomainErrorResult(DomainError error)
-    {
-        _error = error;
-    }
+    private readonly DomainError _error = error;
 
     public async Task ExecuteAsync(HttpContext httpContext)
     {

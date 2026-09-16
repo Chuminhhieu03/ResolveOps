@@ -13,19 +13,22 @@ public static class ModuleDiscovery
 
         foreach (var type in endpointTypes)
         {
-            services.AddTransient(typeof(IEndpoint), type);
+            services.AddTransient(type);
         }
 
         return services;
     }
 
-    public static IEndpointRouteBuilder MapEndpoints(this IEndpointRouteBuilder app)
+    public static IEndpointRouteBuilder MapEndpointsFromAssembly(this IEndpointRouteBuilder app, Assembly assembly)
     {
-        var endpoints = app.ServiceProvider.GetServices<IEndpoint>();
+        var endpointTypes = assembly.GetTypes()
+            .Where(t => typeof(IEndpoint).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract);
 
-        foreach (var endpoint in endpoints)
+        foreach (var endpointType in endpointTypes)
         {
-            endpoint.MapEndpoint(app);
+            var endpoint = app.ServiceProvider.GetRequiredService(endpointType);
+
+            ((IEndpoint)endpoint).MapEndpoint(app);
         }
 
         return app;

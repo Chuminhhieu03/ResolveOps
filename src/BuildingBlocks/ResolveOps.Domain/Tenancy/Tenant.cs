@@ -73,22 +73,16 @@ public sealed class Tenant : IAuditableEntity, IHasConcurrencyStamp
         Name = name.Trim();
         DefaultTimezone = defaultTimezone;
         DefaultCurrency = defaultCurrency.ToUpperInvariant();
-        UpdatedAtUtc = timeProvider.GetUtcNow();
-        ConcurrencyStamp = Guid.NewGuid().ToString("N");
     }
 
-    public void Suspend(TimeProvider timeProvider)
+    public void Suspend(TimeProvider? timeProvider = null)
     {
         Status = TenantStatus.Suspended;
-        UpdatedAtUtc = timeProvider.GetUtcNow();
-        ConcurrencyStamp = Guid.NewGuid().ToString("N");
     }
 
-    public void Activate(TimeProvider timeProvider)
+    public void Activate(TimeProvider? timeProvider = null)
     {
         Status = TenantStatus.Active;
-        UpdatedAtUtc = timeProvider.GetUtcNow();
-        ConcurrencyStamp = Guid.NewGuid().ToString("N");
     }
 
     public bool IsActive => Status == TenantStatus.Active;

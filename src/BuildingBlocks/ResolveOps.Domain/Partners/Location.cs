@@ -111,7 +111,5 @@ public sealed class Location : IAuditableEntity, IHasConcurrencyStamp
         Timezone = timezone;
         Latitude = latitude;
         Longitude = longitude;
-        UpdatedAtUtc = timeProvider.GetUtcNow();
-        ConcurrencyStamp = Guid.NewGuid().ToString("N");
     }
 }

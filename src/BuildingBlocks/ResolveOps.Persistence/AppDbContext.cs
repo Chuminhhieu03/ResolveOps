@@ -85,14 +85,30 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
     // ── System ───────────────────────────────────────────────────────────────
     public DbSet<ErrorTemplate> ErrorTemplates => Set<ErrorTemplate>();
 
-    // ── Tenant filter ─────────────────────────────────────────────────────────
+    // ── Tenant filter & Infrastructure ────────────────────────────────────────
     private readonly Guid? _currentTenantId;
     private readonly IEnumerable<Microsoft.EntityFrameworkCore.Diagnostics.IInterceptor> _interceptors;
+    private readonly TimeProvider _timeProvider;
+    private readonly ResolveOps.Security.ITenantContext? _tenantContext;
 
     /// <summary>Primary constructor — no tenant filter (design-time factory, migrations, seeding).</summary>
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+    public AppDbContext(
+        DbContextOptions<AppDbContext> options,
+        TimeProvider? timeProvider = null,
+        ResolveOps.Security.ITenantContext? tenantContext = null)
+        : base(options)
     {
         _interceptors = [];
+        _timeProvider = timeProvider ?? TimeProvider.System;
+        _tenantContext = tenantContext;
+        try
+        {
+            _currentTenantId = tenantContext?.TenantId.Value;
+        }
+        catch (InvalidOperationException)
+        {
+            _currentTenantId = null;
+        }
     }
 
     /// <summary>
@@ -100,11 +116,18 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
     /// Registered via factory in DI so each HTTP request gets the correct tenant ID
     /// from the resolved ITenantContext.
     /// </summary>
-    public AppDbContext(DbContextOptions<AppDbContext> options, Guid? tenantId, IEnumerable<Microsoft.EntityFrameworkCore.Diagnostics.IInterceptor> interceptors)
+    public AppDbContext(
+        DbContextOptions<AppDbContext> options,
+        Guid? tenantId,
+        IEnumerable<Microsoft.EntityFrameworkCore.Diagnostics.IInterceptor> interceptors,
+        TimeProvider? timeProvider = null,
+        ResolveOps.Security.ITenantContext? tenantContext = null)
         : base(options)
     {
         _currentTenantId = tenantId;
         _interceptors = interceptors;
+        _timeProvider = timeProvider ?? TimeProvider.System;
+        _tenantContext = tenantContext;
     }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -205,13 +228,84 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
     }
 
     /// <summary>
-    /// Hook point for future outbox-pattern and audit-trail interceptors (Phase 5).
-    /// Currently delegates directly to the base implementation.
+    /// Centralized SaveChangesAsync enforcing:
+    /// 1. IAuditableEntity audit trail timestamps & current user resolution.
+    /// 2. IHasConcurrencyStamp optimistic concurrency checks (ABP Framework pattern).
     /// </summary>
     public override Task<int> SaveChangesAsync(
         bool acceptAllChangesOnSuccess,
         CancellationToken cancellationToken = default)
     {
+        ApplyAuditAndConcurrency();
         return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        ApplyAuditAndConcurrency();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    private void ApplyAuditAndConcurrency()
+    {
+        var now = _timeProvider.GetUtcNow();
+        var currentUserId = ResolveCurrentUserId();
+
+        // 1. Audit fields (IAuditableEntity)
+        var auditableEntries = ChangeTracker.Entries<IAuditableEntity>();
+        foreach (var entry in auditableEntries)
+        {
+            if (entry.State == EntityState.Added)
+            {
+                entry.Entity.CreatedAtUtc = now;
+                entry.Entity.CreatedBy = currentUserId;
+                entry.Entity.UpdatedAtUtc = now;
+                entry.Entity.UpdatedBy = currentUserId;
+            }
+            else if (entry.State == EntityState.Modified)
+            {
+                entry.Entity.UpdatedAtUtc = now;
+                entry.Entity.UpdatedBy = currentUserId;
+            }
+        }
+
+        // 2. Concurrency stamp (IHasConcurrencyStamp - ABP Framework pattern)
+        var concurrencyEntries = ChangeTracker.Entries<IHasConcurrencyStamp>();
+        foreach (var entry in concurrencyEntries)
+        {
+            if (entry.State == EntityState.Added)
+            {
+                if (string.IsNullOrWhiteSpace(entry.Entity.ConcurrencyStamp))
+                {
+                    entry.Entity.ConcurrencyStamp = Guid.NewGuid().ToString("N");
+                }
+            }
+            else if (entry.State == EntityState.Modified)
+            {
+                var clientStamp = entry.Entity.ConcurrencyStamp;
+                entry.Property(nameof(IHasConcurrencyStamp.ConcurrencyStamp)).OriginalValue = clientStamp;
+
+                var newStamp = Guid.NewGuid().ToString("N");
+                entry.Entity.ConcurrencyStamp = newStamp;
+                entry.Property(nameof(IHasConcurrencyStamp.ConcurrencyStamp)).CurrentValue = newStamp;
+            }
+        }
+    }
+
+    private string ResolveCurrentUserId()
+    {
+        try
+        {
+            if (_tenantContext != null)
+            {
+                return _tenantContext.UserId.Value.ToString();
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            // Unauthenticated or background worker context
+        }
+
+        return "System";
     }
 }

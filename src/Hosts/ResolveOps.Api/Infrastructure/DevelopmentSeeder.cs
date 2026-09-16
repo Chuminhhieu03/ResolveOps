@@ -48,5 +48,45 @@ public static class DevelopmentSeeder
                 await context.SaveChangesAsync();
             }
         }
+
+        // 3. Seed Standard Parameterized Error Templates
+        var errorTemplates = new (string Code, string MessageTemplate, int HttpStatusCode)[]
+        {
+            ("ERR_SHIPMENT_DUPLICATE_REFERENCE", "A shipment with external reference '{0}' from source '{1}' already exists.", 409),
+            ("ERR_SHIPMENT_NOT_FOUND", "Shipment with ID '{0}' was not found.", 404),
+            ("ERR_SHIPMENT_CANNOT_CANCEL", "A shipment with status '{0}' cannot be cancelled.", 409),
+            ("ERR_CARRIER_NOT_FOUND", "Carrier with ID '{0}' was not found.", 404),
+            ("ERR_QUARANTINED_EVENT_NOT_FOUND", "Quarantined event with ID '{0}' was not found.", 404),
+            ("ERR_INVALID_STATE_TRANSITION", "Resource '{0}' cannot transition to status '{1}' from current status '{2}'.", 409),
+            ("ERR_SHIPMENT_UNMATCHED", "Could not match tracking number '{0}' to any shipment or alias for carrier '{1}'.", 422),
+            ("ERR_INVALID_SIGNATURE", "The webhook request HMAC signature is missing or invalid for carrier '{0}'.", 401),
+            ("IDEMPOTENCY_KEY_REUSED", "The idempotency key '{0}' was previously used with a different request payload.", 409),
+            ("ERR_IDEMPOTENCY_KEY_CONFLICT", "The idempotency key '{0}' was previously used with a different request payload.", 409),
+            ("CONCURRENCY_CONFLICT", "The resource '{0}' has been modified by another operation. Expected version/stamp was '{1}'.", 409),
+            ("ERR_CONCURRENCY_CONFLICT", "The resource '{0}' has been modified by another operation. Expected version/stamp was '{1}'.", 409),
+            ("VALIDATION_FAILED", "Input validation failed for field '{0}': {1}.", 400),
+            ("ERR_VALIDATION_FAILED", "Input validation failed for field '{0}': {1}.", 400),
+            ("FORBIDDEN", "Action '{0}' is forbidden for current user or tenant '{1}'.", 403),
+            ("ERR_FORBIDDEN", "Action '{0}' is forbidden for current user or tenant '{1}'.", 403),
+            ("RESOURCE_NOT_FOUND", "The requested resource '{0}' with key '{1}' was not found.", 404),
+            ("ERR_RESOURCE_NOT_FOUND", "The requested resource '{0}' with key '{1}' was not found.", 404),
+            ("MANDATORY_EVIDENCE_MISSING", "Mandatory evidence '{0}' is required before claim '{1}' can be submitted.", 422),
+            ("CLAIM_DEADLINE_EXPIRED", "Claim submission deadline for case '{0}' expired at '{1}'.", 422),
+            ("INTEGRATION_TEMPORARILY_UNAVAILABLE", "External carrier integration '{0}' is temporarily unreachable. Next retry at '{1}'.", 503),
+        };
+
+        foreach (var (code, template, statusCode) in errorTemplates)
+        {
+            var existing = context.ErrorTemplates.FirstOrDefault(t => t.Code == code);
+            if (existing == null)
+            {
+                context.ErrorTemplates.Add(ResolveOps.Domain.ErrorTemplate.Create(code, template, statusCode));
+            }
+            else
+            {
+                existing.Update(template, statusCode);
+            }
+        }
+        await context.SaveChangesAsync();
     }
 }

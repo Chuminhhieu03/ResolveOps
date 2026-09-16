@@ -99,15 +99,11 @@ public sealed class BusinessCalendar : IAuditableEntity, IHasConcurrencyStamp
         WorkingDaysMask = workingDaysMask;
         WorkingStart = workingStart;
         WorkingEnd = workingEnd;
-        UpdatedAtUtc = timeProvider.GetUtcNow();
-        ConcurrencyStamp = Guid.NewGuid().ToString("N");
     }
 
-    public void Archive(TimeProvider timeProvider)
+    public void Archive(TimeProvider? timeProvider = null)
     {
         Status = BusinessCalendarStatus.Archived;
-        UpdatedAtUtc = timeProvider.GetUtcNow();
-        ConcurrencyStamp = Guid.NewGuid().ToString("N");
     }
 
     /// <summary>
@@ -119,13 +115,11 @@ public sealed class BusinessCalendar : IAuditableEntity, IHasConcurrencyStamp
         DateOnly holidayDate,
         string name,
         bool isWorkingOverride,
-        TimeProvider timeProvider)
+        TimeProvider? timeProvider = null)
     {
         var holiday = BusinessCalendarHoliday.Create(
             TenantId, Id, holidayDate, name, isWorkingOverride);
         _holidays.Add(holiday);
-        UpdatedAtUtc = timeProvider.GetUtcNow();
-        ConcurrencyStamp = Guid.NewGuid().ToString("N");
         return holiday;
     }
 
@@ -133,7 +127,7 @@ public sealed class BusinessCalendar : IAuditableEntity, IHasConcurrencyStamp
     /// Removes a holiday entry by its ID.
     /// Returns false when the holiday was not found in this calendar.
     /// </summary>
-    public bool RemoveHoliday(Guid holidayId, TimeProvider timeProvider)
+    public bool RemoveHoliday(Guid holidayId, TimeProvider? timeProvider = null)
     {
         var holiday = _holidays.FirstOrDefault(h => h.Id == holidayId);
         if (holiday is null)
@@ -142,8 +136,6 @@ public sealed class BusinessCalendar : IAuditableEntity, IHasConcurrencyStamp
         }
 
         _holidays.Remove(holiday);
-        UpdatedAtUtc = timeProvider.GetUtcNow();
-        ConcurrencyStamp = Guid.NewGuid().ToString("N");
         return true;
     }
 

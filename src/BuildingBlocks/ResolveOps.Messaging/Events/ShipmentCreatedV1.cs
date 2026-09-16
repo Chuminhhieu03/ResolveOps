@@ -11,9 +11,6 @@ public sealed class ShipmentCreatedV1 : IIntegrationEvent
 {
     public string EventType => "ShipmentCreatedV1";
     public int EventVersion => 1;
-    public DateTimeOffset OccurredAtUtc { get; init; }
-    public Guid? TenantId { get; init; }
-    public string CorrelationId { get; init; } = string.Empty;
 
     // ── Business payload ──────────────────────────────────────────────────
     public Guid ShipmentId { get; init; }

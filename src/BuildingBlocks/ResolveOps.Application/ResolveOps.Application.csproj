@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ResolveOps.Domain\ResolveOps.Domain.csproj" />
+    <ProjectReference Include="..\ResolveOps.Security\ResolveOps.Security.csproj" />
   </ItemGroup>
 
 </Project>

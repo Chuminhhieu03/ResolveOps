@@ -29,7 +29,8 @@ public static class TrackingModule
 
     public static IEndpointRouteBuilder MapTrackingEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapEndpoints();
+        var assembly = typeof(TrackingModule).Assembly;
+        endpoints.MapEndpointsFromAssembly(assembly);
         return endpoints;
     }
 }

@@ -159,9 +159,6 @@ internal sealed class ReprocessQuarantinedEventHandler
         // Write TrackingEventAcceptedV1 to outbox (spec §17.3)
         var outboxEvent = new TrackingEventAcceptedV1
         {
-            OccurredAtUtc = occurredAt,
-            TenantId = tenantId,
-            CorrelationId = correlationId,
             TrackingEventId = trackingEvent.Id,
             ShipmentId = shipment.Id,
             ShipmentLegId = matchedLegId,
@@ -169,7 +166,7 @@ internal sealed class ReprocessQuarantinedEventHandler
             NormalizedEventType = eventType,
         };
 
-        _outboxWriter.Write(outboxEvent);
+        _outboxWriter.Write(outboxEvent, tenantId, correlationId);
 
         await _dbContext.SaveChangesAsync(cancellationToken);
         TrackingMetrics.NormalizedTotal.Add(1);

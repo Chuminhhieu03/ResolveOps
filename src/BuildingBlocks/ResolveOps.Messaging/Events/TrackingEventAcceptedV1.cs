@@ -12,9 +12,6 @@ public sealed class TrackingEventAcceptedV1 : IIntegrationEvent
 {
     public string EventType => "TrackingEventAcceptedV1";
     public int EventVersion => 1;
-    public DateTimeOffset OccurredAtUtc { get; init; }
-    public Guid? TenantId { get; init; }
-    public string CorrelationId { get; init; } = string.Empty;
 
     // ── Business payload (spec §17.3) ─────────────────────────────────────
     public Guid TrackingEventId { get; init; }

@@ -87,29 +87,23 @@ public sealed class Carrier : IAuditableEntity, IHasConcurrencyStamp
         DefaultTimezone = defaultTimezone;
         ContactEmail = contactEmail?.Trim();
         ClaimSubmissionChannel = claimSubmissionChannel;
-        UpdatedAtUtc = timeProvider.GetUtcNow();
-        ConcurrencyStamp = Guid.NewGuid().ToString("N");
     }
 
     /// <summary>
     /// Activates the carrier so it can be assigned to shipment legs.
     /// </summary>
-    public void Activate(TimeProvider timeProvider)
+    public void Activate(TimeProvider? timeProvider = null)
     {
         Status = CarrierStatus.Active;
-        UpdatedAtUtc = timeProvider.GetUtcNow();
-        ConcurrencyStamp = Guid.NewGuid().ToString("N");
     }
 
     /// <summary>
     /// Deactivates the carrier. An inactive carrier cannot be assigned to new shipment legs.
     /// Existing legs are not affected (spec §24 Phase 3 DoD).
     /// </summary>
-    public void Deactivate(TimeProvider timeProvider)
+    public void Deactivate(TimeProvider? timeProvider = null)
     {
         Status = CarrierStatus.Inactive;
-        UpdatedAtUtc = timeProvider.GetUtcNow();
-        ConcurrencyStamp = Guid.NewGuid().ToString("N");
     }
 
     public bool IsActive => Status == CarrierStatus.Active;

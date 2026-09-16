@@ -2,15 +2,14 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using ResolveOps.Domain.Messaging;
 using ResolveOps.Domain.Tracking;
 using ResolveOps.Messaging;
 using ResolveOps.Messaging.Events;
+using ResolveOps.Messaging.Options;
 using ResolveOps.Modules.Integrations.Carriers.DemoCarrier;
 using ResolveOps.Observability;
 using ResolveOps.Persistence;
@@ -20,23 +19,28 @@ namespace ResolveOps.Worker.Consumers;
 /// <summary>
 /// Background consumer that processes tracking ingestion requests from RabbitMQ (spec §17.4, §17.5, §24 Phase 6).
 ///
-/// Implements transactional Inbox pattern:
+/// Implements transactional Inbox pattern with Dead Letter Exchange (DLX) error handling:
 /// 1. Inserts InboxMessage record inside a database transaction.
 /// 2. If duplicate, commits and acks immediately.
 /// 3. Normalizes payload: matches shipment via ShipmentTrackingAlias or ExternalReference.
 /// 4. If unmatched, stores QuarantinedEvent.
 /// 5. If matched, stores TrackingEvent, projects shipment milestones safely, and writes TrackingEventAcceptedV1 to outbox.
 /// 6. Acks message upon successful transaction commit.
+/// 7. Requeues transient failures up to RetryLimit; routes non-retryable errors to DLX.
 /// </summary>
 public sealed class TrackingIngestionConsumerService : BackgroundService
 {
-    private const string QueueName = "resolveops.tracking-ingestion";
-    private const string ExchangeName = "TrackingIngestionRequestedV1";
-    private const string ConsumerName = "TrackingIngestionConsumer";
+    private const string _queueName = "resolveops.tracking-ingestion";
+    private const string _exchangeName = "TrackingIngestionRequestedV1";
+    private const string _consumerName = "TrackingIngestionConsumer";
+    private const string _dlxExchangeName = "resolveops.dlx";
+    private const string _deadLetterQueueName = "resolveops.dead-letter";
+    private const string _deadLetterRoutingKey = "tracking-ingestion.failed";
 
     private readonly IConnection _connection;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly TimeProvider _timeProvider;
+    private readonly IOptions<RabbitMqConsumerOptions> _options;
     private readonly ILogger<TrackingIngestionConsumerService> _logger;
 
     private static readonly Action<ILogger, string, Exception?> _logStarted =
@@ -67,15 +71,21 @@ public sealed class TrackingIngestionConsumerService : BackgroundService
         LoggerMessage.Define<string>(LogLevel.Error, new EventId(7, "ChannelCreationError"),
             "Failed to create RabbitMQ channel for {QueueName}");
 
+    private static readonly Action<ILogger, ulong, string, Exception?> _logDeadLettered =
+        LoggerMessage.Define<ulong, string>(LogLevel.Warning, new EventId(8, "MessageDeadLettered"),
+            "Tracking ingestion delivery {DeliveryTag} routed to DLX due to: {Reason}");
+
     public TrackingIngestionConsumerService(
         IConnection connection,
         IServiceScopeFactory scopeFactory,
         TimeProvider timeProvider,
+        IOptions<RabbitMqConsumerOptions> options,
         ILogger<TrackingIngestionConsumerService> logger)
     {
         _connection = connection;
         _scopeFactory = scopeFactory;
         _timeProvider = timeProvider;
+        _options = options;
         _logger = logger;
     }
 
@@ -88,37 +98,71 @@ public sealed class TrackingIngestionConsumerService : BackgroundService
         }
         catch (Exception ex)
         {
-            _logChannelCreationError(_logger, QueueName, ex);
+            _logChannelCreationError(_logger, _queueName, ex);
             return;
         }
 
         await using (channel)
         {
-            // Declare exchange
+            // 1. Declare DLX (direct)
             await channel.ExchangeDeclareAsync(
-                exchange: ExchangeName,
-                type: ExchangeType.Fanout,
+                exchange: _dlxExchangeName,
+                type: ExchangeType.Direct,
                 durable: true,
                 autoDelete: false,
                 cancellationToken: stoppingToken);
 
-            // Declare durable queue
+            // 2. Declare dead-letter queue
             await channel.QueueDeclareAsync(
-                queue: QueueName,
+                queue: _deadLetterQueueName,
                 durable: true,
                 exclusive: false,
                 autoDelete: false,
                 arguments: null,
                 cancellationToken: stoppingToken);
 
-            // Bind queue to exchange
+            // 3. Bind dead-letter queue to DLX
             await channel.QueueBindAsync(
-                queue: QueueName,
-                exchange: ExchangeName,
+                queue: _deadLetterQueueName,
+                exchange: _dlxExchangeName,
+                routingKey: _deadLetterRoutingKey,
+                cancellationToken: stoppingToken);
+
+            // 4. Declare main fanout exchange
+            await channel.ExchangeDeclareAsync(
+                exchange: _exchangeName,
+                type: ExchangeType.Fanout,
+                durable: true,
+                autoDelete: false,
+                cancellationToken: stoppingToken);
+
+            // 5. Declare durable main queue with DLX arguments
+            var queueArgs = new Dictionary<string, object?>
+            {
+                ["x-dead-letter-exchange"] = _dlxExchangeName,
+                ["x-dead-letter-routing-key"] = _deadLetterRoutingKey,
+            };
+
+            await channel.QueueDeclareAsync(
+                queue: _queueName,
+                durable: true,
+                exclusive: false,
+                autoDelete: false,
+                arguments: queueArgs,
+                cancellationToken: stoppingToken);
+
+            // 6. Bind queue to exchange
+            await channel.QueueBindAsync(
+                queue: _queueName,
+                exchange: _exchangeName,
                 routingKey: string.Empty,
                 cancellationToken: stoppingToken);
 
-            await channel.BasicQosAsync(prefetchSize: 0, prefetchCount: 10, global: false, cancellationToken: stoppingToken);
+            await channel.BasicQosAsync(
+                prefetchSize: 0,
+                prefetchCount: _options.Value.PrefetchCount,
+                global: false,
+                cancellationToken: stoppingToken);
 
             var consumer = new AsyncEventingBasicConsumer(channel);
             consumer.ReceivedAsync += async (_, ea) =>
@@ -135,13 +179,23 @@ public sealed class TrackingIngestionConsumerService : BackgroundService
                 {
                     await channel.BasicNackAsync(deliveryTag, multiple: false, requeue: true, cancellationToken: CancellationToken.None);
                 }
-#pragma warning disable CA1031 // Do not let worker crash on unhandled message exception
                 catch (Exception ex)
                 {
                     _logError(_logger, deliveryTag, ex);
-                    await channel.BasicNackAsync(deliveryTag, multiple: false, requeue: true, cancellationToken: CancellationToken.None);
+
+                    var isTransient = IsTransientError(ex);
+                    var deathCount = GetDeathCount(ea.BasicProperties.Headers);
+
+                    if (isTransient && deathCount < _options.Value.RetryLimit)
+                    {
+                        await channel.BasicNackAsync(deliveryTag, multiple: false, requeue: true, cancellationToken: CancellationToken.None);
+                    }
+                    else
+                    {
+                        _logDeadLettered(_logger, deliveryTag, isTransient ? "RetryLimitExceeded" : "NonRetryableError", null);
+                        await channel.BasicNackAsync(deliveryTag, multiple: false, requeue: false, cancellationToken: CancellationToken.None);
+                    }
                 }
-#pragma warning restore CA1031
                 finally
                 {
                     stopwatch.Stop();
@@ -150,53 +204,62 @@ public sealed class TrackingIngestionConsumerService : BackgroundService
             };
 
             await channel.BasicConsumeAsync(
-                queue: QueueName,
+                queue: _queueName,
                 autoAck: false,
                 consumer: consumer,
                 cancellationToken: stoppingToken);
 
-            _logStarted(_logger, QueueName, null);
+            _logStarted(_logger, _queueName, null);
 
             // Wait until cancellation requested
             var tcs = new TaskCompletionSource();
             stoppingToken.Register(() => tcs.TrySetResult());
             await tcs.Task;
 
-            _logStopped(_logger, QueueName, null);
+            _logStopped(_logger, _queueName, null);
         }
+    }
+
+    private static bool IsTransientError(Exception ex) =>
+        ex is TimeoutException
+            or Microsoft.Data.SqlClient.SqlException
+            or DbUpdateConcurrencyException
+            or System.Net.Sockets.SocketException
+            or System.IO.IOException;
+
+    private static int GetDeathCount(IDictionary<string, object?>? headers)
+    {
+        if (headers is null || !headers.TryGetValue("x-death", out var xDeathObj) || xDeathObj is not IList<object?> deathList)
+        {
+            return 0;
+        }
+
+        long count = 0;
+        foreach (var item in deathList)
+        {
+            if (item is IDictionary<string, object?> deathEntry &&
+                deathEntry.TryGetValue("count", out var c) &&
+                c is long l)
+            {
+                count += l;
+            }
+        }
+
+        return (int)Math.Min(count, int.MaxValue);
     }
 
     private async Task ProcessMessageAsync(byte[] body, string? correlationId, CancellationToken cancellationToken)
     {
         var json = Encoding.UTF8.GetString(body);
-        IntegrationEventEnvelope? envelope;
-        try
-        {
-            envelope = JsonSerializer.Deserialize<IntegrationEventEnvelope>(json);
-        }
-        catch (JsonException)
-        {
-            return;
-        }
+        var envelope = JsonSerializer.Deserialize<IntegrationEventEnvelope>(json)
+            ?? throw new InvalidOperationException("Failed to deserialize IntegrationEventEnvelope: payload is null.");
 
-        if (envelope is null)
-        {
-            return;
-        }
+        var payload = JsonSerializer.Deserialize<TrackingIngestionRequestedV1>(envelope.Payload)
+            ?? throw new InvalidOperationException("Failed to deserialize TrackingIngestionRequestedV1 payload: payload is null.");
 
-        TrackingIngestionRequestedV1? payload;
-        try
+        if (payload.ReceiptId == Guid.Empty)
         {
-            payload = JsonSerializer.Deserialize<TrackingIngestionRequestedV1>(envelope.Payload);
-        }
-        catch (JsonException)
-        {
-            return;
-        }
-
-        if (payload is null || payload.ReceiptId == Guid.Empty)
-        {
-            return;
+            throw new InvalidOperationException("Invalid TrackingIngestionRequestedV1: ReceiptId is empty.");
         }
 
         var messageId = string.IsNullOrWhiteSpace(envelope.CorrelationId)
@@ -213,17 +276,17 @@ public sealed class TrackingIngestionConsumerService : BackgroundService
 
         var existingInbox = await dbContext.InboxMessages
             .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(m => m.ConsumerName == ConsumerName && m.MessageId == messageId, cancellationToken);
+            .FirstOrDefaultAsync(m => m.ConsumerName == _consumerName && m.MessageId == messageId, cancellationToken);
 
         if (existingInbox != null)
         {
-            _logDuplicateInbox(_logger, messageId, ConsumerName, null);
+            _logDuplicateInbox(_logger, messageId, _consumerName, null);
             await transaction.CommitAsync(cancellationToken);
             return;
         }
 
         var inboxRecord = InboxMessage.Create(
-            consumerName: ConsumerName,
+            consumerName: _consumerName,
             messageId: messageId,
             tenantId: envelope.TenantId,
             receivedAtUtc: now);
@@ -426,9 +489,6 @@ public sealed class TrackingIngestionConsumerService : BackgroundService
         // Write TrackingEventAcceptedV1 to outbox for Phase 7 Exception policy engine
         var acceptedEvent = new TrackingEventAcceptedV1
         {
-            OccurredAtUtc = parsed.OccurredAtUtc,
-            TenantId = receipt.TenantId,
-            CorrelationId = envelope.CorrelationId,
             TrackingEventId = trackingEvent.Id,
             ShipmentId = shipment.Id,
             ShipmentLegId = matchedLegId,
@@ -436,7 +496,7 @@ public sealed class TrackingIngestionConsumerService : BackgroundService
             NormalizedEventType = parsed.EventType,
         };
 
-        outboxWriter.Write(acceptedEvent);
+        outboxWriter.Write(acceptedEvent, receipt.TenantId, envelope.CorrelationId, causationId: envelope.EventType);
 
         inboxRecord.MarkProcessed(now, resultHash: trackingEvent.Id.ToString());
         TrackingMetrics.NormalizedTotal.Add(1);

@@ -44,10 +44,8 @@ public sealed class TenantSettings : IAuditableEntity, IHasConcurrencyStamp
         };
     }
 
-    public void Update(string settingsJson, TimeProvider timeProvider)
+    public void Update(string settingsJson, TimeProvider? timeProvider = null)
     {
         SettingsJson = settingsJson;
-        UpdatedAtUtc = timeProvider.GetUtcNow();
-        ConcurrencyStamp = Guid.NewGuid().ToString("N");
     }
 }

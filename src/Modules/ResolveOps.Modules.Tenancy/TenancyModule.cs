@@ -32,7 +32,8 @@ public static class TenancyModule
 
     public static IEndpointRouteBuilder MapTenancyEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapEndpoints();
+        var assembly = typeof(TenancyModule).Assembly;
+        endpoints.MapEndpointsFromAssembly(assembly);
         return endpoints;
     }
 }

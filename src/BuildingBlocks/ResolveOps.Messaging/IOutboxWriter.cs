@@ -11,8 +11,12 @@ namespace ResolveOps.Messaging;
 public interface IOutboxWriter
 {
     /// <summary>
-    /// Appends an outbox message for the given integration event.
+    /// Appends an outbox message for the given domain fact event and transport metadata.
     /// Does not save; the caller must save within the same transaction.
     /// </summary>
-    void Write(IIntegrationEvent integrationEvent, string? causationId = null);
+    void Write(
+        IIntegrationEvent integrationEvent,
+        Guid? tenantId,
+        string correlationId,
+        string? causationId = null);
 }

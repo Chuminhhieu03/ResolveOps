@@ -51,14 +51,12 @@ public sealed class QuarantinedEvent : IHasConcurrencyStamp
         ResolvedShipmentId = shipmentId;
         AssignedUserId = assignedUserId;
         ResolvedAtUtc = timeProvider.GetUtcNow();
-        ConcurrencyStamp = Guid.NewGuid().ToString("N");
     }
 
     public void MarkReprocessed(TimeProvider timeProvider)
     {
         Status = QuarantinedEventStatus.Reprocessed;
         ResolvedAtUtc = timeProvider.GetUtcNow();
-        ConcurrencyStamp = Guid.NewGuid().ToString("N");
     }
 
     public void Ignore(Guid? assignedUserId, TimeProvider timeProvider)
@@ -66,6 +64,5 @@ public sealed class QuarantinedEvent : IHasConcurrencyStamp
         Status = QuarantinedEventStatus.Ignored;
         AssignedUserId = assignedUserId;
         ResolvedAtUtc = timeProvider.GetUtcNow();
-        ConcurrencyStamp = Guid.NewGuid().ToString("N");
     }
 }

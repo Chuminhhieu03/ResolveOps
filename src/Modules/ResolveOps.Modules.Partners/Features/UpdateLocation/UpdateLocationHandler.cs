@@ -25,8 +25,8 @@ internal sealed class UpdateLocationHandler
             return DomainError.ResourceNotFound with { Message = "Location not found." };
         }
 
-        // Apply EF's original value for optimistic concurrency
-        _dbContext.Entry(location).Property(l => l.ConcurrencyStamp).OriginalValue = command.ConcurrencyStamp;
+        // Assign client's concurrency stamp; AppDbContext handles original value and new stamp generation
+        location.ConcurrencyStamp = command.ConcurrencyStamp;
 
         location.Update(
             command.Name,

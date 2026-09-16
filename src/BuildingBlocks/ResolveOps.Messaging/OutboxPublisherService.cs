@@ -3,34 +3,22 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ResolveOps.Domain.Messaging;
+using ResolveOps.Messaging.Options;
 using ResolveOps.Persistence;
 
 namespace ResolveOps.Messaging;
 
 /// <summary>
 /// Background service that polls the outbox table and publishes pending messages to RabbitMQ (spec §17 / Phase 5).
-///
-/// Design decisions:
-/// - Polls on a fixed interval (default 5 seconds). Phase 6+ may switch to a DB notification
-///   or shorter interval once tracking ingestion volumes are measured.
-/// - Processes messages in batches of 50 per poll cycle.
-/// - Applies exponential back-off on publish failures up to MaxAttempts (5).
-///   After MaxAttempts the row is marked Failed and requires manual intervention.
-/// - Each poll cycle opens a new DbContext scope to avoid stale query caches.
-/// - Does not use a distributed lock — the outbox table has no "claimed" state in Phase 5.
-///   With a single Worker instance this is safe. Phase 16 adds concurrency controls.
-/// - CancellationToken is respected on every I/O operation (spec §0.1 rule 15).
 /// </summary>
 public sealed class OutboxPublisherService : BackgroundService
 {
-    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(5);
-    private const int BatchSize = 50;
-    private const int MaxAttempts = 5;
-
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly RabbitMqPublisher _publisher;
     private readonly TimeProvider _timeProvider;
+    private readonly IOptions<OutboxOptions> _options;
     private readonly ILogger<OutboxPublisherService> _logger;
 
     // ── LoggerMessage delegates (CA1848 compliance) ───────────────────────
@@ -62,17 +50,20 @@ public sealed class OutboxPublisherService : BackgroundService
         IServiceScopeFactory scopeFactory,
         RabbitMqPublisher publisher,
         TimeProvider timeProvider,
+        IOptions<OutboxOptions> options,
         ILogger<OutboxPublisherService> logger)
     {
         _scopeFactory = scopeFactory;
         _publisher = publisher;
         _timeProvider = timeProvider;
+        _options = options;
         _logger = logger;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logStarted(_logger, PollInterval, null);
+        var pollInterval = TimeSpan.FromSeconds(_options.Value.PollIntervalSeconds);
+        _logStarted(_logger, pollInterval, null);
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -85,14 +76,12 @@ public sealed class OutboxPublisherService : BackgroundService
                 // Normal shutdown — do not log as error.
                 break;
             }
-#pragma warning disable CA1031 // Intentional: publisher must not crash the host on transient failures.
             catch (Exception ex)
             {
                 _logUnexpected(_logger, ex);
             }
-#pragma warning restore CA1031
 
-            await Task.Delay(PollInterval, stoppingToken);
+            await Task.Delay(pollInterval, stoppingToken);
         }
 
         _logStopped(_logger, null);
@@ -110,7 +99,7 @@ public sealed class OutboxPublisherService : BackgroundService
                 m.ProcessingStatus == OutboxProcessingStatus.Pending &&
                 (m.NextAttemptAtUtc == null || m.NextAttemptAtUtc <= now))
             .OrderBy(m => m.OccurredAtUtc)
-            .Take(BatchSize)
+            .Take(_options.Value.BatchSize)
             .ToListAsync(cancellationToken);
 
         if (pendingMessages.Count == 0)
@@ -133,12 +122,14 @@ public sealed class OutboxPublisherService : BackgroundService
         OutboxMessage message,
         CancellationToken cancellationToken)
     {
+        var maxAttempts = _options.Value.MaxAttempts;
+
         try
         {
             var envelope = JsonSerializer.Deserialize<IntegrationEventEnvelope>(message.Payload);
             if (envelope is null)
             {
-                message.MarkFailed("Payload could not be deserialized to IntegrationEventEnvelope.", _timeProvider.GetUtcNow(), MaxAttempts);
+                message.MarkFailed("Payload could not be deserialized to IntegrationEventEnvelope.", _timeProvider.GetUtcNow(), maxAttempts);
                 return;
             }
 
@@ -166,9 +157,9 @@ public sealed class OutboxPublisherService : BackgroundService
         {
             var backoffSeconds = Math.Pow(2, message.ProcessingAttempts) * 5; // 5s, 10s, 20s, 40s, 80s
             var nextAttempt = _timeProvider.GetUtcNow().AddSeconds(backoffSeconds);
-            message.MarkFailed(ex.Message, nextAttempt, MaxAttempts);
+            message.MarkFailed(ex.Message, nextAttempt, maxAttempts);
 
-            _logFailed(_logger, message.EventType, message.Id, message.ProcessingAttempts, MaxAttempts, nextAttempt, ex);
+            _logFailed(_logger, message.EventType, message.Id, message.ProcessingAttempts, maxAttempts, nextAttempt, ex);
         }
 #pragma warning restore CA1031
     }
