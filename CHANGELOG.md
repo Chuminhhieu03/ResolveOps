@@ -10,6 +10,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Phase 7 (Exception policy engine and case creation)**:
+  - Added `ExceptionPolicy`, `ExceptionCase`, `ExceptionOccurrence`, and `CaseTimelineEntry` domain entities in `ResolveOps.Domain.Exceptions`.
+  - Implemented `ExceptionType` (`PickupDelay`, `InTransitDelay`, `Damage`), `ExceptionCaseStatus`, `ExceptionSeverity`, `PolicyStatus`, `CaseTimelineEntryType`, and `ActorType` domain models.
+  - Implemented `ExceptionPolicyConfiguration`, `ExceptionCaseConfiguration`, `ExceptionOccurrenceConfiguration`, and `CaseTimelineEntryConfiguration` in `ResolveOps.Persistence.Configurations`.
+  - Enforced filtered unique partial index `UIX_ExceptionCases_ActiveFingerprint (tenant_id, fingerprint) WHERE status NOT IN ('Closed', 'Cancelled')` on `exception_cases` to prevent duplicate active cases across repeated scans and events.
+  - Added tenant query filters for all new Exception entities in `AppDbContext`.
+  - Generated EF Core migration `20260917142552_AddExceptionPoliciesAndCases`.
+  - Implemented `ExceptionFingerprintGenerator` producing deterministic composite fingerprints (`TenantId:ShipmentId:LegId:Type:BusinessKey:vVersion`).
+  - Implemented `SeverityCalculator` (Low, Medium, High, Critical) and `AssignmentEvaluator` based on versioned policy JSON schemas.
+  - Implemented `ExceptionPolicyEvaluator` for deterministic detection of `PickupDelay`, `InTransitDelay`, and `Damage`.
+  - Implemented `ExceptionDetectedV1` integration event in `ResolveOps.Messaging.Events` and outbox publishing.
+  - Implemented `ExceptionEvaluationConsumerService` in `ResolveOps.Worker`: transactional Inbox idempotency consuming `TrackingEventAcceptedV1`, evaluating incoming signals, appending occurrences or creating cases, with concurrency race handling.
+  - Implemented `MissedDeadlineScanJob` using Quartz.NET: scans active shipments for missed planned pickup times and milestone deadlines against configured tolerances.
+  - Implemented policy management API endpoints: `POST /api/exception-policies`, `GET /api/exception-policies`, `GET /api/exception-policies/active`, `POST /api/exception-policies/{id}/activate`, `POST /api/exception-policies/{id}/retire`.
+  - Implemented case endpoints: `GET /api/exception-cases` (paged/filtered), `GET /api/exception-cases/{id}` (with occurrences & timeline), `POST /api/exception-cases` (manual creation), `POST /api/exception-cases/{id}/cancel` (false-positive cancellation with reason).
+  - Added `CanCreateExceptionCase` and `RequireCreateExceptionCase` / `RequireCancelCase` security policies.
+  - Implemented OpenTelemetry metrics (`exceptions.detected.total`, `exceptions.detection.duration.ms`) and `ActivitySource` in `ResolveOps.Observability`.
+  - Added ADR-024 (`docs/adr/ADR-024-exception-policy-engine-and-fingerprinting.md`).
+
 - **Phase 6 (Tracking ingestion and normalization)**:
   - Added `InboundEventReceipt`, `TrackingEvent`, and `QuarantinedEvent` domain entities in `ResolveOps.Domain.Tracking`.
   - Implemented `TrackingEventType`, `InboundReceiptStatus`, `QuarantinedEventStatus`, and `QuarantineReasonCodes` constants.

@@ -8,6 +8,13 @@ namespace ResolveOps.Api.Infrastructure;
 
 public static class DevelopmentSeeder
 {
+    private static readonly string[] _damageKeywords =
+    [
+        "damage", "damaged", "broken", "wet", "crushed", "tampered", "destroyed", "leak", "torn"
+    ];
+
+    private static readonly string[] _damageTriggerEventTypes = ["Damaged", "Exception"];
+
     public static async Task SeedAsync(IServiceProvider services)
     {
         using var scope = services.CreateScope();
@@ -73,6 +80,11 @@ public static class DevelopmentSeeder
             ("MANDATORY_EVIDENCE_MISSING", "Mandatory evidence '{0}' is required before claim '{1}' can be submitted.", 422),
             ("CLAIM_DEADLINE_EXPIRED", "Claim submission deadline for case '{0}' expired at '{1}'.", 422),
             ("INTEGRATION_TEMPORARILY_UNAVAILABLE", "External carrier integration '{0}' is temporarily unreachable. Next retry at '{1}'.", 503),
+            ("ERR_EXCEPTION_POLICY_NOT_FOUND", "Exception policy with key '{0}' was not found.", 404),
+            ("ERR_ACTIVE_POLICY_NOT_FOUND", "No active policy found for exception type '{0}'.", 404),
+            ("ERR_POLICY_VERSION_EXISTS", "Policy '{0}' with version {1} already exists for this tenant.", 409),
+            ("ERR_CASE_CANNOT_CANCEL", "Case '{0}' in status '{1}' cannot be cancelled as a false positive.", 409),
+            ("ERR_EXCEPTION_CASE_NOT_FOUND", "Exception case with ID '{0}' was not found.", 404),
         };
 
         foreach (var (code, template, statusCode) in errorTemplates)
@@ -87,6 +99,75 @@ public static class DevelopmentSeeder
                 existing.Update(template, statusCode);
             }
         }
+
+        // 4. Seed Default Active Exception Policies for local-dev Tenant (spec §24 Phase 7)
+        var existingPolicies = context.ExceptionPolicies.Where(p => p.TenantId == tenant.Id).ToList();
+        var now = timeProvider.GetUtcNow();
+
+        if (!existingPolicies.Any(p => p.ExceptionType == ResolveOps.Domain.Exceptions.ExceptionType.PickupDelay))
+        {
+            var pickupPolicy = ResolveOps.Domain.Exceptions.ExceptionPolicy.Create(
+                tenant.Id,
+                policyKey: "POL-PICKUP-DELAY-DEFAULT",
+                versionNumber: 1,
+                exceptionType: ResolveOps.Domain.Exceptions.ExceptionType.PickupDelay,
+                ruleDefinitionJson: JsonSerializer.Serialize(new { ToleranceMinutes = 30 }),
+                severityDefinitionJson: JsonSerializer.Serialize(new { DefaultSeverity = "Medium", HighValueThreshold = 5000m, CriticalValueThreshold = 25000m }),
+                assignmentDefinitionJson: JsonSerializer.Serialize(new { DefaultTeamCode = "OPS-NORTH" }),
+                createdByUserId: admin?.Id ?? Guid.Empty,
+                effectiveFromUtc: now.AddDays(-30),
+                effectiveToUtc: null,
+                evidencePolicyVersionId: null,
+                slaPolicyVersionId: null,
+                status: ResolveOps.Domain.Exceptions.PolicyStatus.Active);
+
+            context.ExceptionPolicies.Add(pickupPolicy);
+        }
+
+        if (!existingPolicies.Any(p => p.ExceptionType == ResolveOps.Domain.Exceptions.ExceptionType.InTransitDelay))
+        {
+            var inTransitPolicy = ResolveOps.Domain.Exceptions.ExceptionPolicy.Create(
+                tenant.Id,
+                policyKey: "POL-IN-TRANSIT-DELAY-DEFAULT",
+                versionNumber: 1,
+                exceptionType: ResolveOps.Domain.Exceptions.ExceptionType.InTransitDelay,
+                ruleDefinitionJson: JsonSerializer.Serialize(new { ToleranceMinutes = 60, TriggerOnCarrierDelayEvent = true }),
+                severityDefinitionJson: JsonSerializer.Serialize(new { DefaultSeverity = "Medium", HighValueThreshold = 5000m, CriticalValueThreshold = 25000m }),
+                assignmentDefinitionJson: JsonSerializer.Serialize(new { DefaultTeamCode = "OPS-NORTH" }),
+                createdByUserId: admin?.Id ?? Guid.Empty,
+                effectiveFromUtc: now.AddDays(-30),
+                effectiveToUtc: null,
+                evidencePolicyVersionId: null,
+                slaPolicyVersionId: null,
+                status: ResolveOps.Domain.Exceptions.PolicyStatus.Active);
+
+            context.ExceptionPolicies.Add(inTransitPolicy);
+        }
+
+        if (!existingPolicies.Any(p => p.ExceptionType == ResolveOps.Domain.Exceptions.ExceptionType.Damage))
+        {
+            var damagePolicy = ResolveOps.Domain.Exceptions.ExceptionPolicy.Create(
+                tenant.Id,
+                policyKey: "POL-DAMAGE-DEFAULT",
+                versionNumber: 1,
+                exceptionType: ResolveOps.Domain.Exceptions.ExceptionType.Damage,
+                ruleDefinitionJson: JsonSerializer.Serialize(new
+                {
+                    DamageKeywords = _damageKeywords,
+                    TriggerEventTypes = _damageTriggerEventTypes
+                }),
+                severityDefinitionJson: JsonSerializer.Serialize(new { DefaultSeverity = "High", HighValueThreshold = 5000m, CriticalValueThreshold = 25000m }),
+                assignmentDefinitionJson: JsonSerializer.Serialize(new { DefaultTeamCode = "CLAIMS-NORTH" }),
+                createdByUserId: admin?.Id ?? Guid.Empty,
+                effectiveFromUtc: now.AddDays(-30),
+                effectiveToUtc: null,
+                evidencePolicyVersionId: null,
+                slaPolicyVersionId: null,
+                status: ResolveOps.Domain.Exceptions.PolicyStatus.Active);
+
+            context.ExceptionPolicies.Add(damagePolicy);
+        }
+
         await context.SaveChangesAsync();
     }
 }

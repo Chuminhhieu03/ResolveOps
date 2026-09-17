@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using ResolveOps.Domain;
+using ResolveOps.Domain.Exceptions;
 using ResolveOps.Domain.Identity;
 using ResolveOps.Domain.Messaging;
 using ResolveOps.Domain.Partners;
@@ -76,6 +77,12 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
     public DbSet<InboundEventReceipt> InboundEventReceipts => Set<InboundEventReceipt>();
     public DbSet<TrackingEvent> TrackingEvents => Set<TrackingEvent>();
     public DbSet<QuarantinedEvent> QuarantinedEvents => Set<QuarantinedEvent>();
+
+    // ── Exceptions (Phase 7) ──────────────────────────────────────────────────
+    public DbSet<ExceptionPolicy> ExceptionPolicies => Set<ExceptionPolicy>();
+    public DbSet<ExceptionCase> ExceptionCases => Set<ExceptionCase>();
+    public DbSet<ExceptionOccurrence> ExceptionOccurrences => Set<ExceptionOccurrence>();
+    public DbSet<CaseTimelineEntry> CaseTimelineEntries => Set<CaseTimelineEntry>();
 
     // ── Messaging (Phase 5) ───────────────────────────────────────────────────
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
@@ -207,6 +214,19 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
 
         builder.Entity<QuarantinedEvent>()
             .HasQueryFilter(q => _currentTenantId == null || q.TenantId == _currentTenantId);
+
+        // Exceptions — all entities are tenant-scoped (Phase 7)
+        builder.Entity<ExceptionPolicy>()
+            .HasQueryFilter(p => _currentTenantId == null || p.TenantId == _currentTenantId);
+
+        builder.Entity<ExceptionCase>()
+            .HasQueryFilter(c => _currentTenantId == null || c.TenantId == _currentTenantId);
+
+        builder.Entity<ExceptionOccurrence>()
+            .HasQueryFilter(o => _currentTenantId == null || o.TenantId == _currentTenantId);
+
+        builder.Entity<CaseTimelineEntry>()
+            .HasQueryFilter(t => _currentTenantId == null || t.TenantId == _currentTenantId);
 
         // Messaging — OutboxMessage has nullable TenantId (system events have no tenant).
         // No global filter on OutboxMessage/InboxMessage/IdempotencyRecord — the publisher

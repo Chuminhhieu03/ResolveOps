@@ -1,7 +1,10 @@
+using Quartz;
 using RabbitMQ.Client;
 using ResolveOps.Messaging;
+using ResolveOps.Modules.Exceptions;
 using ResolveOps.Persistence;
 using ResolveOps.ServiceDefaults;
+using ResolveOps.Worker.Jobs;
 
 // The Worker uses WebApplication builder (not just HostBuilder) so it can expose
 // /health/* endpoints for the Aspire dashboard and orchestration readiness probes.
@@ -46,11 +49,29 @@ builder.Services.Configure<ResolveOps.Messaging.Options.OutboxOptions>(
 builder.Services.Configure<ResolveOps.Messaging.Options.RabbitMqConsumerOptions>(
     builder.Configuration.GetSection(ResolveOps.Messaging.Options.RabbitMqConsumerOptions.SectionName));
 
-// ── Messaging & Background Consumers (Phase 5 & 6) ──────────────────────
+// ── Modules ──────────────────────────────────────────────────────────────
+builder.Services.AddExceptionsModule();
+
+// ── Messaging & Background Consumers (Phase 5, 6 & 7) ────────────────────
 builder.Services.AddScoped<IOutboxWriter, OutboxWriter>();
 builder.Services.AddSingleton<RabbitMqPublisher>();
 builder.Services.AddHostedService<OutboxPublisherService>();
 builder.Services.AddHostedService<ResolveOps.Worker.Consumers.TrackingIngestionConsumerService>();
+builder.Services.AddHostedService<ResolveOps.Worker.Consumers.ExceptionEvaluationConsumerService>();
+
+// ── Quartz.NET Scheduled Deadline Scan (Phase 7 / spec §18.2, §24) ────────
+builder.Services.AddQuartz(q =>
+{
+    var jobKey = new JobKey("MissedDeadlineScanJob");
+    q.AddJob<MissedDeadlineScanJob>(opts => opts.WithIdentity(jobKey));
+    q.AddTrigger(opts => opts
+        .ForJob(jobKey)
+        .WithIdentity("MissedDeadlineScanTrigger")
+        .WithSimpleSchedule(x => x
+            .WithIntervalInMinutes(1)
+            .RepeatForever()));
+});
+builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
 
 // ── SQL Server readiness health check ────────────────────────────────────
 builder.Services

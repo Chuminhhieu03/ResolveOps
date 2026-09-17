@@ -17,6 +17,7 @@ public static class Permissions
 
     // ── Operational ──────────────────────────────────────────────────────────
     public const string CanViewCases = "CanViewCases";
+    public const string CanCreateExceptionCase = "CanCreateExceptionCase";
     public const string CanTriageCase = "CanTriageCase";
     public const string CanAssignCase = "CanAssignCase";
     public const string CanUpdateCase = "CanUpdateCase";
@@ -60,7 +61,7 @@ public static class Permissions
             [Roles.TenantAdmin] =
             [
                 CanManageTenant, CanManageUsers, CanViewAudit, CanManagePolicies, CanManageIntegrations,
-                CanViewCases, CanTriageCase, CanAssignCase, CanUpdateCase, CanCloseCase, CanCancelCase,
+                CanViewCases, CanCreateExceptionCase, CanTriageCase, CanAssignCase, CanUpdateCase, CanCloseCase, CanCancelCase,
                 CanReopenClosedCase, CanOverrideSeverity,
                 CanViewClaims, CanCreateClaim, CanApproveClaimSubmission, CanRecordCarrierDecision,
                 CanRecordRecovery, CanWriteOffClaim,
@@ -74,7 +75,7 @@ public static class Permissions
 
             [Roles.OperationsManager] =
             [
-                CanViewCases, CanTriageCase, CanAssignCase, CanUpdateCase, CanCloseCase, CanCancelCase,
+                CanViewCases, CanCreateExceptionCase, CanTriageCase, CanAssignCase, CanUpdateCase, CanCloseCase, CanCancelCase,
                 CanReopenClosedCase, CanOverrideSeverity,
                 CanViewClaims, CanCreateClaim,
                 CanUploadEvidence, CanDownloadEvidence,
@@ -87,7 +88,7 @@ public static class Permissions
 
             [Roles.LogisticsCoordinator] =
             [
-                CanViewCases, CanTriageCase, CanUpdateCase,
+                CanViewCases, CanCreateExceptionCase, CanTriageCase, CanUpdateCase,
                 CanViewClaims,
                 CanUploadEvidence, CanDownloadEvidence,
                 CanViewShipments,
@@ -96,7 +97,7 @@ public static class Permissions
 
             [Roles.ExceptionSpecialist] =
             [
-                CanViewCases, CanTriageCase, CanAssignCase, CanUpdateCase, CanCloseCase, CanCancelCase,
+                CanViewCases, CanCreateExceptionCase, CanTriageCase, CanAssignCase, CanUpdateCase, CanCloseCase, CanCancelCase,
                 CanOverrideSeverity,
                 CanViewClaims, CanCreateClaim,
                 CanUploadEvidence, CanDownloadEvidence,

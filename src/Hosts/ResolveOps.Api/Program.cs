@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using ResolveOps.Api;
 using ResolveOps.Api.Infrastructure;
 using ResolveOps.Domain.Identity;
+using ResolveOps.Modules.Exceptions;
 using ResolveOps.Modules.Identity;
 using ResolveOps.Modules.Integrations;
 using ResolveOps.Modules.Partners;
@@ -93,6 +94,7 @@ builder.Services.AddPartnersModule();
 builder.Services.AddShipmentsModule();
 builder.Services.AddIntegrationsModule();
 builder.Services.AddTrackingModule();
+builder.Services.AddExceptionsModule();
 
 builder.Services.AddScoped<ResolveOps.Application.IErrorMessageProvider, ResolveOps.Persistence.Services.DatabaseErrorMessageProvider>();
 builder.Services.AddScoped<ResolveOps.Application.Idempotency.IIdempotencyStore, ResolveOps.Persistence.Services.EfCoreIdempotencyStore>();
@@ -134,8 +136,8 @@ if (app.Environment.IsDevelopment())
 app.MapGet("/api/version", () => new
 {
     Product = "ResolveOps",
-    Phase = "6",
-    Description = "Tracking ingestion and normalization",
+    Phase = "7",
+    Description = "Exception policy engine and case creation",
     BuildTimestamp = DateTime.UtcNow.ToString("O"),
 })
 .WithName("GetVersion")
@@ -148,6 +150,7 @@ app.MapPartnersEndpoints();
 app.MapShipmentsEndpoints();
 app.MapIntegrationsEndpoints();
 app.MapTrackingEndpoints();
+app.MapExceptionsEndpoints();
 
 // ─────────────────────────────────────────────────────────────────────────
 

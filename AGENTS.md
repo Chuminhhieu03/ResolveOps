@@ -20,10 +20,10 @@ and adds current phase status. When in conflict, the spec wins.
 
 | Field | Value |
 |---|---|
-| **Current phase** | Phase 6 — Tracking ingestion and normalization |
+| **Current phase** | Phase 7 — Exception policy engine and case creation |
 | **Phase status** | ✅ Complete |
-| **Next phase** | Phase 7 — Exception policy engine and case creation |
-| **Last updated** | 2026-09-11 |
+| **Next phase** | Phase 8 — Exception case workflow, tasks, SLA |
+| **Last updated** | 2026-09-17 |
 
 ### Phase 0 deliverables completed
 
@@ -155,7 +155,7 @@ The agent MUST NOT:
 | 4 | Shipment domain | ✅ Complete |
 | 5 | Messaging foundation: outbox, inbox, RabbitMQ | ✅ Complete |
 | 6 | Tracking ingestion and normalization | ✅ Complete |
-| 7 | Exception policy engine and case creation | ⬜ Not started |
+| 7 | Exception policy engine and case creation | ✅ Complete |
 | 8 | Exception case workflow, tasks, SLA | ⬜ Not started |
 | 9 | Evidence and secure document pipeline | ⬜ Not started |
 | 10 | Claim eligibility and draft claims | ⬜ Not started |

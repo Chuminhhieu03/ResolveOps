@@ -10,6 +10,8 @@
     <PackageReference Include="Serilog.AspNetCore" />
     <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
     <PackageReference Include="RabbitMQ.Client" />
+    <PackageReference Include="Quartz" />
+    <PackageReference Include="Quartz.Extensions.Hosting" />
   </ItemGroup>
 
   <ItemGroup>
@@ -18,6 +20,7 @@
     <ProjectReference Include="..\..\BuildingBlocks\ResolveOps.Messaging\ResolveOps.Messaging.csproj" />
     <ProjectReference Include="..\..\BuildingBlocks\ResolveOps.Observability\ResolveOps.Observability.csproj" />
     <ProjectReference Include="..\..\Modules\ResolveOps.Modules.Integrations\ResolveOps.Modules.Integrations.csproj" />
+    <ProjectReference Include="..\..\Modules\ResolveOps.Modules.Exceptions\ResolveOps.Modules.Exceptions.csproj" />
   </ItemGroup>
 
 </Project>

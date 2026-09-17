@@ -20,10 +20,12 @@ public static class AuthorizationPolicies
     public const string RequireManageIntegrations = "require_manage_integrations";
 
     public const string RequireViewCases = "require_view_cases";
+    public const string RequireCreateExceptionCase = "require_create_exception_case";
     public const string RequireTriageCase = "require_triage_case";
     public const string RequireAssignCase = "require_assign_case";
     public const string RequireUpdateCase = "require_update_case";
     public const string RequireCloseCase = "require_close_case";
+    public const string RequireCancelCase = "require_cancel_case";
     public const string RequireReopenCase = "require_reopen_closed_case";
 
     public const string RequireViewClaims = "require_view_claims";
@@ -60,10 +62,12 @@ public static class AuthorizationPolicies
             .AddPolicy(RequireManagePolicies, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanManagePolicies))
             .AddPolicy(RequireManageIntegrations, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanManageIntegrations))
             .AddPolicy(RequireViewCases, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanViewCases))
+            .AddPolicy(RequireCreateExceptionCase, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanCreateExceptionCase))
             .AddPolicy(RequireTriageCase, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanTriageCase))
             .AddPolicy(RequireAssignCase, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanAssignCase))
             .AddPolicy(RequireUpdateCase, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanUpdateCase))
             .AddPolicy(RequireCloseCase, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanCloseCase))
+            .AddPolicy(RequireCancelCase, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanCancelCase))
             .AddPolicy(RequireReopenCase, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanReopenClosedCase))
             .AddPolicy(RequireViewClaims, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanViewClaims))
             .AddPolicy(RequireCreateClaim, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanCreateClaim))
