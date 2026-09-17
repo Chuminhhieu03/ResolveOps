@@ -12,6 +12,7 @@ using ResolveOps.Modules.Partners;
 using ResolveOps.Modules.Shipments;
 using ResolveOps.Modules.Tenancy;
 using ResolveOps.Modules.Tracking;
+using ResolveOps.Modules.Workflow;
 using ResolveOps.Persistence;
 using ResolveOps.Security;
 using ResolveOps.ServiceDefaults;
@@ -95,6 +96,7 @@ builder.Services.AddShipmentsModule();
 builder.Services.AddIntegrationsModule();
 builder.Services.AddTrackingModule();
 builder.Services.AddExceptionsModule();
+builder.Services.AddWorkflowModule();
 
 builder.Services.AddScoped<ResolveOps.Application.IErrorMessageProvider, ResolveOps.Persistence.Services.DatabaseErrorMessageProvider>();
 builder.Services.AddScoped<ResolveOps.Application.Idempotency.IIdempotencyStore, ResolveOps.Persistence.Services.EfCoreIdempotencyStore>();
@@ -136,8 +138,8 @@ if (app.Environment.IsDevelopment())
 app.MapGet("/api/version", () => new
 {
     Product = "ResolveOps",
-    Phase = "7",
-    Description = "Exception policy engine and case creation",
+    Phase = "8",
+    Description = "Exception case workflow, tasks, SLA",
     BuildTimestamp = DateTime.UtcNow.ToString("O"),
 })
 .WithName("GetVersion")
@@ -151,6 +153,7 @@ app.MapShipmentsEndpoints();
 app.MapIntegrationsEndpoints();
 app.MapTrackingEndpoints();
 app.MapExceptionsEndpoints();
+app.MapWorkflowEndpoints();
 
 // ─────────────────────────────────────────────────────────────────────────
 

@@ -94,6 +94,7 @@ public static class Extensions
                 .AddSqlClientInstrumentation()
                 .AddSource("ResolveOps.Exceptions")
                 .AddSource("ResolveOps.Tracking")
+                .AddSource("ResolveOps.Workflow")
                 .AddOtlpExporter())
             .WithMetrics(metrics => metrics
                 .AddAspNetCoreInstrumentation()
@@ -101,6 +102,7 @@ public static class Extensions
                 .AddRuntimeInstrumentation()
                 .AddMeter("ResolveOps.Exceptions")
                 .AddMeter("ResolveOps.Tracking")
+                .AddMeter("ResolveOps.Workflow")
                 .AddOtlpExporter());
 
         return builder;

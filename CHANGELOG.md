@@ -10,6 +10,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Phase 8 (Exception case workflow, tasks, SLA)**:
+  - Added `WorkflowTask`, `SlaPolicy`, `SlaPolicyVersion`, `SlaClock`, and `SlaClockPause` domain entities in `ResolveOps.Domain.Workflow`.
+  - Added `WorkflowTaskStatus`, `WorkflowTaskPriority`, `WorkflowTaskType`, `SlaClockStatus`, `SlaClockType` domain enums.
+  - Extended `ExceptionCase` aggregate root with guarded domain methods strictly enforcing the transition matrix (§9.1): `Triage`, `Assign`, `StartInvestigation`, `RequestEvidence`, `ReceiveEvidence`, `RecordCarrierUpdate`, `StartMitigation`, `CompleteMitigation`, `MarkClaimRequired`, `Resolve`, `Close`, `Reopen`, `ChangeSeverity`, `Reclassify`, and `AddComment`.
+  - Enforced Master Spec Invariant §10.3: Cannot close a case with incomplete mandatory tasks unless explicitly waived with reason and actor attribution.
+  - Implemented optimistic concurrency via `ConcurrencyStamp` (ADR-006) across all case lifecycle transitions and task mutations (returning HTTP 409 Conflict).
+  - Implemented `IBusinessCalendarService` / `BusinessCalendarService` for calculating deadlines using working hours, operating schedules, partner calendars, and holiday schedules (§16.7).
+  - Implemented `ISlaClockService` / `SlaClockService` managing response and resolution SLA clocks, clock pausing on external waiting states, and pause-adjusted resumption (§9.4).
+  - Implemented Quartz.NET `SlaBreachScanJob` running every minute in `ResolveOps.Worker`, scanning for running clocks exceeding target deadlines, marking breaches, and atomically publishing `CaseSlaBreachedV1` to the Outbox (§18.1).
+  - Implemented Workflow Tasks minimal API endpoints in `ResolveOps.Modules.Workflow`: `GET /api/tasks/my`, `GET /api/exception-cases/{id}/tasks`, `POST /api/exception-cases/{id}/tasks`, `POST /api/tasks/{id}/assign`, `POST /api/tasks/{id}/start`, `POST /api/tasks/{id}/block`, `POST /api/tasks/{id}/unblock`, `POST /api/tasks/{id}/complete`, `POST /api/tasks/{id}/cancel`, `POST /api/tasks/{id}/waive`.
+  - Implemented Exception Case lifecycle API endpoints in `ResolveOps.Modules.Exceptions`: `POST /api/exception-cases/{id}/triage`, `assign`, `start-investigation`, `change-severity`, `reclassify`, `request-evidence`, `receive-evidence`, `record-carrier-update`, `start-mitigation`, `complete-mitigation`, `mark-claim-required`, `resolve`, `close`, `reopen`, `comments`, and `GET /api/exception-cases/{id}/timeline`.
+  - Implemented OpenTelemetry metrics (`sla.breaches.total`, `sla.evaluations.total`, `tasks.created.total`, `tasks.completed.total`) and meter `ResolveOps.Workflow` in `ResolveOps.Observability`.
+  - Added EF Core configurations and migration `20260917152415_AddWorkflowTasksAndSlaClocks`.
+  - Added ADR-025 (`docs/adr/ADR-025-exception-case-workflow-and-sla.md`).
+
 - **Phase 7 (Exception policy engine and case creation)**:
   - Added `ExceptionPolicy`, `ExceptionCase`, `ExceptionOccurrence`, and `CaseTimelineEntry` domain entities in `ResolveOps.Domain.Exceptions`.
   - Implemented `ExceptionType` (`PickupDelay`, `InTransitDelay`, `Damage`), `ExceptionCaseStatus`, `ExceptionSeverity`, `PolicyStatus`, `CaseTimelineEntryType`, and `ActorType` domain models.

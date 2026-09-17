@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
+using ResolveOps.Application;
 using ResolveOps.Domain;
 using ResolveOps.Domain.Exceptions;
 using ResolveOps.Messaging;
@@ -19,6 +20,7 @@ internal sealed class CreateManualCaseHandler
     private readonly ISeverityCalculator _severityCalculator;
     private readonly IAssignmentEvaluator _assignmentEvaluator;
     private readonly IOutboxWriter _outboxWriter;
+    private readonly ISlaClockService _slaClockService;
 
     public CreateManualCaseHandler(
         AppDbContext dbContext,
@@ -27,7 +29,8 @@ internal sealed class CreateManualCaseHandler
         IExceptionFingerprintGenerator fingerprintGenerator,
         ISeverityCalculator severityCalculator,
         IAssignmentEvaluator assignmentEvaluator,
-        IOutboxWriter outboxWriter)
+        IOutboxWriter outboxWriter,
+        ISlaClockService slaClockService)
     {
         _dbContext = dbContext;
         _tenantContext = tenantContext;
@@ -36,6 +39,7 @@ internal sealed class CreateManualCaseHandler
         _severityCalculator = severityCalculator;
         _assignmentEvaluator = assignmentEvaluator;
         _outboxWriter = outboxWriter;
+        _slaClockService = slaClockService;
     }
 
     public async Task<Result<CreateManualCaseResponse>> HandleAsync(
@@ -133,6 +137,14 @@ internal sealed class CreateManualCaseHandler
         };
 
         _outboxWriter.Write(detectedEvent, tenantId, correlationId);
+
+        // 8. Start SLA clocks (spec §8.4, §9.4, §15.8)
+        await _slaClockService.StartCaseClocksAsync(
+            tenantId,
+            exceptionCase.Id,
+            policy?.SlaPolicyVersionId,
+            exceptionCase.DetectedAtUtc,
+            cancellationToken);
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 

@@ -2,6 +2,7 @@ using Quartz;
 using RabbitMQ.Client;
 using ResolveOps.Messaging;
 using ResolveOps.Modules.Exceptions;
+using ResolveOps.Modules.Workflow;
 using ResolveOps.Persistence;
 using ResolveOps.ServiceDefaults;
 using ResolveOps.Worker.Jobs;
@@ -51,6 +52,7 @@ builder.Services.Configure<ResolveOps.Messaging.Options.RabbitMqConsumerOptions>
 
 // ── Modules ──────────────────────────────────────────────────────────────
 builder.Services.AddExceptionsModule();
+builder.Services.AddWorkflowModule();
 
 // ── Messaging & Background Consumers (Phase 5, 6 & 7) ────────────────────
 builder.Services.AddScoped<IOutboxWriter, OutboxWriter>();
@@ -67,6 +69,15 @@ builder.Services.AddQuartz(q =>
     q.AddTrigger(opts => opts
         .ForJob(jobKey)
         .WithIdentity("MissedDeadlineScanTrigger")
+        .WithSimpleSchedule(x => x
+            .WithIntervalInMinutes(1)
+            .RepeatForever()));
+
+    var slaJobKey = new JobKey("SlaBreachScanJob");
+    q.AddJob<SlaBreachScanJob>(opts => opts.WithIdentity(slaJobKey));
+    q.AddTrigger(opts => opts
+        .ForJob(slaJobKey)
+        .WithIdentity("SlaBreachScanTrigger")
         .WithSimpleSchedule(x => x
             .WithIntervalInMinutes(1)
             .RepeatForever()));

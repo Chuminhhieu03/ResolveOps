@@ -85,6 +85,16 @@ public static class DevelopmentSeeder
             ("ERR_POLICY_VERSION_EXISTS", "Policy '{0}' with version {1} already exists for this tenant.", 409),
             ("ERR_CASE_CANNOT_CANCEL", "Case '{0}' in status '{1}' cannot be cancelled as a false positive.", 409),
             ("ERR_EXCEPTION_CASE_NOT_FOUND", "Exception case with ID '{0}' was not found.", 404),
+            ("ERR_TASK_NOT_FOUND", "Task with ID '{0}' was not found.", 404),
+            ("ERR_TASK_CANNOT_TRANSITION", "Task '{0}' cannot perform this transition from status '{1}'.", 409),
+            ("ERR_TASK_NOT_MANDATORY", "Task '{0}' is not mandatory and cannot be waived.", 400),
+            ("ERR_CASE_MANDATORY_TASKS_INCOMPLETE", "Case '{0}' cannot be closed because it has incomplete mandatory tasks.", 409),
+            ("ERR_SLA_POLICY_NOT_FOUND", "SLA policy with key '{0}' was not found.", 404),
+            ("ERR_CLOCK_CANNOT_START", "SLA clock '{0}' cannot be started.", 409),
+            ("ERR_CLOCK_CANNOT_PAUSE", "SLA clock '{0}' cannot be paused.", 409),
+            ("ERR_CLOCK_CANNOT_RESUME", "SLA clock '{0}' cannot be resumed.", 409),
+            ("ERR_CLOCK_CANNOT_COMPLETE", "SLA clock '{0}' cannot be completed.", 409),
+            ("ERR_CLOCK_CANNOT_BREACH", "SLA clock '{0}' cannot be breached.", 409),
         };
 
         foreach (var (code, template, statusCode) in errorTemplates)
@@ -166,6 +176,36 @@ public static class DevelopmentSeeder
                 status: ResolveOps.Domain.Exceptions.PolicyStatus.Active);
 
             context.ExceptionPolicies.Add(damagePolicy);
+        }
+
+        // 5. Seed Default Active SLA Policy for local-dev Tenant (spec §24 Phase 8)
+        var existingSlaPolicies = context.SlaPolicies.Where(p => p.TenantId == tenant.Id).ToList();
+        if (!existingSlaPolicies.Any(p => p.PolicyKey == "SLA-STANDARD-DEFAULT"))
+        {
+            var slaPolicy = ResolveOps.Domain.Workflow.SlaPolicy.Create(
+                tenant.Id,
+                policyKey: "SLA-STANDARD-DEFAULT",
+                name: "Standard SLA Policy",
+                description: "Default SLA policy for logistics exceptions",
+                timeProvider);
+
+            context.SlaPolicies.Add(slaPolicy);
+
+            var slaPolicyVersion = ResolveOps.Domain.Workflow.SlaPolicyVersion.Create(
+                tenant.Id,
+                slaPolicy.Id,
+                versionNumber: 1,
+                calendarId: null,
+                acknowledgementMinutes: 60,
+                firstActionMinutes: 60,
+                resolutionMinutes: 1440,
+                claimSubmissionMinutes: 43200,
+                pauseReasonCodes: "AWAITING_CARRIER,AWAITING_EVIDENCE,CARRIER_UPDATE_REQUESTED,EVIDENCE_REQUESTED",
+                effectiveFromUtc: now.AddDays(-30),
+                timeProvider,
+                status: "Active");
+
+            context.SlaPolicyVersions.Add(slaPolicyVersion);
         }
 
         await context.SaveChangesAsync();

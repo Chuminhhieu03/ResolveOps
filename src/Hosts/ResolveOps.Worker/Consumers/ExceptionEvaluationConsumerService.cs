@@ -223,6 +223,7 @@ public sealed class ExceptionEvaluationConsumerService : BackgroundService
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var evaluator = scope.ServiceProvider.GetRequiredService<IExceptionPolicyEvaluator>();
         var outboxWriter = scope.ServiceProvider.GetRequiredService<IOutboxWriter>();
+        var slaClockService = scope.ServiceProvider.GetRequiredService<ResolveOps.Application.ISlaClockService>();
         var now = _timeProvider.GetUtcNow();
 
         // ── Transactional Inbox Check (spec §17.5) ───────────────────────────
@@ -349,6 +350,14 @@ public sealed class ExceptionEvaluationConsumerService : BackgroundService
                 };
 
                 outboxWriter.Write(detectedEvent, shipment.TenantId, envelope.CorrelationId);
+
+                // Start SLA clocks for the case
+                await slaClockService.StartCaseClocksAsync(
+                    shipment.TenantId,
+                    newCase.Id,
+                    null,
+                    newCase.DetectedAtUtc,
+                    cancellationToken);
 
                 _logCaseCreated(_logger, newCase.CaseNumber, newCase.ExceptionType, null);
                 ExceptionMetrics.ExceptionsDetectedTotal.Add(1);

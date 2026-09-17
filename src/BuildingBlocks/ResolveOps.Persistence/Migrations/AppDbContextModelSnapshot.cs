@@ -1859,6 +1859,451 @@ namespace ResolveOps.Persistence.Migrations
                     b.ToTable("tracking_events", (string)null);
                 });
 
+            modelBuilder.Entity("ResolveOps.Domain.Workflow.SlaClock", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("BreachedAtUtc")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("breached_at_utc");
+
+                    b.Property<Guid>("CaseId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("case_id");
+
+                    b.Property<Guid?>("ClaimId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("claim_id");
+
+                    b.Property<string>("ClockType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasColumnName("clock_type");
+
+                    b.Property<DateTimeOffset?>("CompletedAtUtc")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("completed_at_utc");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("concurrency_stamp");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset?>("DueAtUtc")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("due_at_utc");
+
+                    b.Property<DateTimeOffset?>("PausedAtUtc")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("paused_at_utc");
+
+                    b.Property<Guid>("PolicyVersionId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("policy_version_id");
+
+                    b.Property<DateTimeOffset?>("StartedAtUtc")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("started_at_utc");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<long>("TotalPausedSeconds")
+                        .HasColumnType("bigint")
+                        .HasColumnName("total_paused_seconds");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "CaseId", "ClockType")
+                        .HasDatabaseName("ix_sla_clocks_tenant_case_clock");
+
+                    b.HasIndex("TenantId", "Status", "DueAtUtc")
+                        .HasDatabaseName("ix_sla_clocks_tenant_status_due");
+
+                    b.ToTable("sla_clocks", (string)null);
+                });
+
+            modelBuilder.Entity("ResolveOps.Domain.Workflow.SlaClockPause", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset?>("EndedAtUtc")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("ended_at_utc");
+
+                    b.Property<Guid?>("EndedBy")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("ended_by");
+
+                    b.Property<string>("ReasonCode")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("reason_code");
+
+                    b.Property<Guid>("SlaClockId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("sla_clock_id");
+
+                    b.Property<DateTimeOffset>("StartedAtUtc")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("started_at_utc");
+
+                    b.Property<Guid?>("StartedBy")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("started_by");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SlaClockId");
+
+                    b.HasIndex("TenantId", "SlaClockId")
+                        .HasDatabaseName("ix_sla_clock_pauses_tenant_clock");
+
+                    b.ToTable("sla_clock_pauses", (string)null);
+                });
+
+            modelBuilder.Entity("ResolveOps.Domain.Workflow.SlaPolicy", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("concurrency_stamp");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("description");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("PolicyKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("policy_key");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "PolicyKey")
+                        .IsUnique()
+                        .HasDatabaseName("uix_sla_policies_tenant_key");
+
+                    b.ToTable("sla_policies", (string)null);
+                });
+
+            modelBuilder.Entity("ResolveOps.Domain.Workflow.SlaPolicyVersion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
+
+                    b.Property<int?>("AcknowledgementMinutes")
+                        .HasColumnType("int")
+                        .HasColumnName("acknowledgement_minutes");
+
+                    b.Property<Guid?>("CalendarId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("calendar_id");
+
+                    b.Property<int?>("ClaimSubmissionMinutes")
+                        .HasColumnType("int")
+                        .HasColumnName("claim_submission_minutes");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("concurrency_stamp");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset>("EffectiveFromUtc")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("effective_from_utc");
+
+                    b.Property<DateTimeOffset?>("EffectiveToUtc")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("effective_to_utc");
+
+                    b.Property<int?>("FirstActionMinutes")
+                        .HasColumnType("int")
+                        .HasColumnName("first_action_minutes");
+
+                    b.Property<string>("PauseReasonCodes")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("pause_reason_codes");
+
+                    b.Property<int?>("ResolutionMinutes")
+                        .HasColumnType("int")
+                        .HasColumnName("resolution_minutes");
+
+                    b.Property<Guid>("SlaPolicyId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("sla_policy_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("updated_by");
+
+                    b.Property<int>("VersionNumber")
+                        .HasColumnType("int")
+                        .HasColumnName("version_number");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "SlaPolicyId", "VersionNumber")
+                        .IsUnique()
+                        .HasDatabaseName("uix_sla_policy_versions_tenant_policy_ver");
+
+                    b.ToTable("sla_policy_versions", (string)null);
+                });
+
+            modelBuilder.Entity("ResolveOps.Domain.Workflow.WorkflowTask", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
+
+                    b.Property<string>("BlockedReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("blocked_reason");
+
+                    b.Property<Guid>("CaseId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("case_id");
+
+                    b.Property<Guid?>("ClaimId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("claim_id");
+
+                    b.Property<DateTimeOffset?>("CompletedAtUtc")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("completed_at_utc");
+
+                    b.Property<string>("CompletionNote")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("completion_note");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("concurrency_stamp");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("created_by");
+
+                    b.Property<Guid?>("CreatedByPolicyId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("created_by_policy_id");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("description");
+
+                    b.Property<DateTimeOffset?>("DueAtUtc")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("due_at_utc");
+
+                    b.Property<bool>("IsMandatory")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_mandatory");
+
+                    b.Property<string>("OwnerTeamCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("owner_team_code");
+
+                    b.Property<Guid?>("OwnerUserId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("owner_user_id");
+
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("priority");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("TaskType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("task_type");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("updated_by");
+
+                    b.Property<DateTimeOffset?>("WaivedAtUtc")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("waived_at_utc");
+
+                    b.Property<Guid?>("WaivedByUserId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("waived_by_user_id");
+
+                    b.Property<string>("WaivedReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("waived_reason");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "CaseId", "Status")
+                        .HasDatabaseName("ix_workflow_tasks_tenant_case_status");
+
+                    b.HasIndex("TenantId", "OwnerUserId", "Status")
+                        .HasDatabaseName("ix_workflow_tasks_tenant_owner_status");
+
+                    b.HasIndex("TenantId", "Status", "DueAtUtc")
+                        .HasDatabaseName("ix_workflow_tasks_tenant_status_due");
+
+                    b.ToTable("workflow_tasks", (string)null);
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole<System.Guid>", null)
@@ -1962,6 +2407,15 @@ namespace ResolveOps.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("ResolveOps.Domain.Workflow.SlaClockPause", b =>
+                {
+                    b.HasOne("ResolveOps.Domain.Workflow.SlaClock", null)
+                        .WithMany("Pauses")
+                        .HasForeignKey("SlaClockId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("ResolveOps.Domain.Exceptions.ExceptionCase", b =>
                 {
                     b.Navigation("Occurrences");
@@ -1981,6 +2435,11 @@ namespace ResolveOps.Persistence.Migrations
                     b.Navigation("Legs");
 
                     b.Navigation("TrackingAliases");
+                });
+
+            modelBuilder.Entity("ResolveOps.Domain.Workflow.SlaClock", b =>
+                {
+                    b.Navigation("Pauses");
                 });
 #pragma warning restore 612, 618
         }

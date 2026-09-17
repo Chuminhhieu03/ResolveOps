@@ -21,6 +21,7 @@
     <ProjectReference Include="..\..\BuildingBlocks\ResolveOps.Observability\ResolveOps.Observability.csproj" />
     <ProjectReference Include="..\..\Modules\ResolveOps.Modules.Integrations\ResolveOps.Modules.Integrations.csproj" />
     <ProjectReference Include="..\..\Modules\ResolveOps.Modules.Exceptions\ResolveOps.Modules.Exceptions.csproj" />
+    <ProjectReference Include="..\..\Modules\ResolveOps.Modules.Workflow\ResolveOps.Modules.Workflow.csproj" />
   </ItemGroup>
 
 </Project>

@@ -10,6 +10,7 @@ using ResolveOps.Domain.Partners;
 using ResolveOps.Domain.Shipments;
 using ResolveOps.Domain.Tenancy;
 using ResolveOps.Domain.Tracking;
+using ResolveOps.Domain.Workflow;
 using ResolveOps.Persistence.Conventions;
 
 namespace ResolveOps.Persistence;
@@ -83,6 +84,13 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
     public DbSet<ExceptionCase> ExceptionCases => Set<ExceptionCase>();
     public DbSet<ExceptionOccurrence> ExceptionOccurrences => Set<ExceptionOccurrence>();
     public DbSet<CaseTimelineEntry> CaseTimelineEntries => Set<CaseTimelineEntry>();
+
+    // ── Workflow (Phase 8) ────────────────────────────────────────────────────
+    public DbSet<WorkflowTask> WorkflowTasks => Set<WorkflowTask>();
+    public DbSet<SlaPolicy> SlaPolicies => Set<SlaPolicy>();
+    public DbSet<SlaPolicyVersion> SlaPolicyVersions => Set<SlaPolicyVersion>();
+    public DbSet<SlaClock> SlaClocks => Set<SlaClock>();
+    public DbSet<SlaClockPause> SlaClockPauses => Set<SlaClockPause>();
 
     // ── Messaging (Phase 5) ───────────────────────────────────────────────────
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
@@ -227,6 +235,22 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
 
         builder.Entity<CaseTimelineEntry>()
             .HasQueryFilter(t => _currentTenantId == null || t.TenantId == _currentTenantId);
+
+        // Workflow — all entities are tenant-scoped (Phase 8)
+        builder.Entity<WorkflowTask>()
+            .HasQueryFilter(t => _currentTenantId == null || t.TenantId == _currentTenantId);
+
+        builder.Entity<SlaPolicy>()
+            .HasQueryFilter(p => _currentTenantId == null || p.TenantId == _currentTenantId);
+
+        builder.Entity<SlaPolicyVersion>()
+            .HasQueryFilter(v => _currentTenantId == null || v.TenantId == _currentTenantId);
+
+        builder.Entity<SlaClock>()
+            .HasQueryFilter(c => _currentTenantId == null || c.TenantId == _currentTenantId);
+
+        builder.Entity<SlaClockPause>()
+            .HasQueryFilter(p => _currentTenantId == null || p.TenantId == _currentTenantId);
 
         // Messaging — OutboxMessage has nullable TenantId (system events have no tenant).
         // No global filter on OutboxMessage/InboxMessage/IdempotencyRecord — the publisher

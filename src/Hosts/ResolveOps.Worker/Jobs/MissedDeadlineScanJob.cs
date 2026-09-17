@@ -50,6 +50,7 @@ public sealed class MissedDeadlineScanJob : IJob
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var evaluator = scope.ServiceProvider.GetRequiredService<IExceptionPolicyEvaluator>();
         var outboxWriter = scope.ServiceProvider.GetRequiredService<IOutboxWriter>();
+        var slaClockService = scope.ServiceProvider.GetRequiredService<ResolveOps.Application.ISlaClockService>();
 
         // Query active shipments needing pickup or delivery
         var candidateShipments = await dbContext.Shipments
@@ -67,14 +68,14 @@ public sealed class MissedDeadlineScanJob : IJob
             var pickupCandidate = await evaluator.EvaluatePickupDelayAsync(shipment, now, cancellationToken);
             if (pickupCandidate is not null && pickupCandidate.IsViolation)
             {
-                await TryCreateCaseAsync(dbContext, outboxWriter, shipment, pickupCandidate, now, cancellationToken);
+                await TryCreateCaseAsync(dbContext, outboxWriter, slaClockService, shipment, pickupCandidate, now, cancellationToken);
             }
 
             // 2. Evaluate InTransitDelay
             var inTransitCandidate = await evaluator.EvaluateInTransitDelayAsync(shipment, now, cancellationToken);
             if (inTransitCandidate is not null && inTransitCandidate.IsViolation)
             {
-                await TryCreateCaseAsync(dbContext, outboxWriter, shipment, inTransitCandidate, now, cancellationToken);
+                await TryCreateCaseAsync(dbContext, outboxWriter, slaClockService, shipment, inTransitCandidate, now, cancellationToken);
             }
         }
 
@@ -86,6 +87,7 @@ public sealed class MissedDeadlineScanJob : IJob
     private async Task TryCreateCaseAsync(
         AppDbContext dbContext,
         IOutboxWriter outboxWriter,
+        ResolveOps.Application.ISlaClockService slaClockService,
         Shipment shipment,
         DetectionCandidate candidate,
         DateTimeOffset now,
@@ -143,6 +145,14 @@ public sealed class MissedDeadlineScanJob : IJob
         };
 
         outboxWriter.Write(detectedEvent, shipment.TenantId, Guid.NewGuid().ToString("N"));
+
+        // Start SLA clocks for the detected case
+        await slaClockService.StartCaseClocksAsync(
+            shipment.TenantId,
+            newCase.Id,
+            null,
+            now,
+            cancellationToken);
 
         try
         {

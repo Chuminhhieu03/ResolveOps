@@ -20,9 +20,9 @@ and adds current phase status. When in conflict, the spec wins.
 
 | Field | Value |
 |---|---|
-| **Current phase** | Phase 7 — Exception policy engine and case creation |
+| **Current phase** | Phase 8 — Exception case workflow, tasks, SLA |
 | **Phase status** | ✅ Complete |
-| **Next phase** | Phase 8 — Exception case workflow, tasks, SLA |
+| **Next phase** | Phase 9 — Evidence and secure document pipeline |
 | **Last updated** | 2026-09-17 |
 
 ### Phase 0 deliverables completed
@@ -140,7 +140,7 @@ The agent MUST NOT:
 - Add microservices, Kubernetes, Azure proprietary services, MassTransit, or Kafka.
 - Add AI features before Phase 18.
 - *Note:* Rule 10 (no reflection for auto-discovery) is overridden by ADR-006. Reflection IS allowed for endpoint/handler auto-registration.
-- *Note:* Optimistic concurrency uses `string ConcurrencyStamp` (overriding `long Version` via ADR-006).
+- *Note:* Optimistic concurrency uses `string ConcurrencyStamp` (overriding `long Version` via ADR-006). Do NOT manually assign or roll `ConcurrencyStamp` inside domain entity methods (`Update`, `Triage`, `Assign`, `Resolve`, etc.). Concurrency token verification and stamp rotation are handled centrally and exclusively by `AppDbContext.ApplyAuditAndConcurrency()` on `SaveChangesAsync()`.
 
 ---
 
@@ -156,7 +156,7 @@ The agent MUST NOT:
 | 5 | Messaging foundation: outbox, inbox, RabbitMQ | ✅ Complete |
 | 6 | Tracking ingestion and normalization | ✅ Complete |
 | 7 | Exception policy engine and case creation | ✅ Complete |
-| 8 | Exception case workflow, tasks, SLA | ⬜ Not started |
+| 8 | Exception case workflow, tasks, SLA | ✅ Complete |
 | 9 | Evidence and secure document pipeline | ⬜ Not started |
 | 10 | Claim eligibility and draft claims | ⬜ Not started |
 | 11 | Claim approval, submission, response, appeal | ⬜ Not started |

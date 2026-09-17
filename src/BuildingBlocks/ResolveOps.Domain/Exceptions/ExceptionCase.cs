@@ -9,8 +9,9 @@ namespace ResolveOps.Domain.Exceptions;
 /// 3. Severity override requires reason and permission.
 /// 4. Owner changes require audit.
 /// 5. State transition must match the current version (ConcurrencyStamp check).
-/// 6. A false-positive cancellation stores the reason/evidence and moves state to Cancelled.
-/// 7. Financial exposure cannot be negative.
+/// 6. A case cannot close with mandatory incomplete tasks unless each task is waived by an authorized actor with reason.
+/// 7. A false-positive cancellation stores the reason/evidence and moves state to Cancelled.
+/// 8. Financial exposure cannot be negative.
 /// </summary>
 public sealed class ExceptionCase : IAuditableEntity, IHasConcurrencyStamp
 {
@@ -145,7 +146,6 @@ public sealed class ExceptionCase : IAuditableEntity, IHasConcurrencyStamp
             correlationId: null,
             timeProvider);
 
-        ConcurrencyStamp = Guid.NewGuid().ToString("N");
         return occurrence;
     }
 
@@ -171,6 +171,511 @@ public sealed class ExceptionCase : IAuditableEntity, IHasConcurrencyStamp
 
         _timelineEntries.Add(entry);
         return entry;
+    }
+
+    public Result Triage(
+        Guid? actorId,
+        string actorType,
+        string? detailsJson,
+        string? correlationId,
+        TimeProvider timeProvider)
+    {
+        if (Status != ExceptionCaseStatus.Detected)
+        {
+            return DomainError.Failure(
+                "ERR_INVALID_STATE_TRANSITION",
+                $"Case '{CaseNumber}' cannot transition to '{ExceptionCaseStatus.Triaged}' from status '{Status}'. Only 'Detected' cases can be triaged.");
+        }
+
+        Status = ExceptionCaseStatus.Triaged;
+        AddTimelineEntry(
+            CaseTimelineEntryType.Triaged,
+            actorType,
+            actorId,
+            "Case triaged by coordinator.",
+            detailsJson,
+            correlationId,
+            timeProvider);
+
+        return Result.Success();
+    }
+
+    public Result Assign(
+        Guid? ownerUserId,
+        string? ownerTeamCode,
+        string? reason,
+        Guid? actorId,
+        string actorType,
+        string? detailsJson,
+        string? correlationId,
+        TimeProvider timeProvider)
+    {
+        if (!ExceptionCaseStatus.IsActive(Status))
+        {
+            return DomainError.Failure(
+                "ERR_INVALID_STATE_TRANSITION",
+                $"Case '{CaseNumber}' is in inactive status '{Status}' and cannot be assigned.");
+        }
+
+        var oldOwner = OwnerUserId;
+        var oldTeam = OwnerTeamCode;
+
+        OwnerUserId = ownerUserId;
+        OwnerTeamCode = ownerTeamCode;
+
+        if (Status == ExceptionCaseStatus.Triaged)
+        {
+            Status = ExceptionCaseStatus.Assigned;
+        }
+
+        var summary = $"Case assigned to user '{ownerUserId}' / team '{ownerTeamCode}'. Previous: user '{oldOwner}' / team '{oldTeam}'. Reason: {reason}";
+        AddTimelineEntry(
+            CaseTimelineEntryType.Assigned,
+            actorType,
+            actorId,
+            summary,
+            detailsJson,
+            correlationId,
+            timeProvider);
+
+        return Result.Success();
+    }
+
+    public Result StartInvestigation(
+        Guid? actorId,
+        string actorType,
+        string? detailsJson,
+        string? correlationId,
+        TimeProvider timeProvider)
+    {
+        if (Status != ExceptionCaseStatus.Assigned && Status != ExceptionCaseStatus.Reopened)
+        {
+            return DomainError.Failure(
+                "ERR_INVALID_STATE_TRANSITION",
+                $"Case '{CaseNumber}' cannot start investigation from status '{Status}'. Must be in 'Assigned' or 'Reopened' status.");
+        }
+
+        Status = ExceptionCaseStatus.Investigating;
+        AddTimelineEntry(
+            CaseTimelineEntryType.InvestigationStarted,
+            actorType,
+            actorId,
+            "Investigation started.",
+            detailsJson,
+            correlationId,
+            timeProvider);
+
+        return Result.Success();
+    }
+
+    public Result RequestEvidence(
+        string reason,
+        Guid? actorId,
+        string actorType,
+        string? detailsJson,
+        string? correlationId,
+        TimeProvider timeProvider)
+    {
+        if (Status != ExceptionCaseStatus.Investigating)
+        {
+            return DomainError.Failure(
+                "ERR_INVALID_STATE_TRANSITION",
+                $"Case '{CaseNumber}' cannot transition to '{ExceptionCaseStatus.AwaitingEvidence}' from status '{Status}'.");
+        }
+
+        Status = ExceptionCaseStatus.AwaitingEvidence;
+        AddTimelineEntry(
+            CaseTimelineEntryType.AwaitingEvidence,
+            actorType,
+            actorId,
+            $"Evidence requested: {reason}",
+            detailsJson,
+            correlationId,
+            timeProvider);
+
+        return Result.Success();
+    }
+
+    public Result ReceiveEvidence(
+        string? notes,
+        Guid? actorId,
+        string actorType,
+        string? detailsJson,
+        string? correlationId,
+        TimeProvider timeProvider)
+    {
+        if (Status != ExceptionCaseStatus.AwaitingEvidence)
+        {
+            return DomainError.Failure(
+                "ERR_INVALID_STATE_TRANSITION",
+                $"Case '{CaseNumber}' is not in '{ExceptionCaseStatus.AwaitingEvidence}' status.");
+        }
+
+        Status = ExceptionCaseStatus.Investigating;
+        AddTimelineEntry(
+            CaseTimelineEntryType.EvidenceReceived,
+            actorType,
+            actorId,
+            $"Evidence received. Investigation resumed. Note: {notes}",
+            detailsJson,
+            correlationId,
+            timeProvider);
+
+        return Result.Success();
+    }
+
+    public Result RecordCarrierUpdate(
+        string notes,
+        string? targetStatus,
+        Guid? actorId,
+        string actorType,
+        string? detailsJson,
+        string? correlationId,
+        TimeProvider timeProvider)
+    {
+        if (!ExceptionCaseStatus.IsActive(Status))
+        {
+            return DomainError.Failure(
+                "ERR_INVALID_STATE_TRANSITION",
+                $"Case '{CaseNumber}' is not active.");
+        }
+
+        if (string.Equals(targetStatus, ExceptionCaseStatus.AwaitingCarrier, StringComparison.OrdinalIgnoreCase))
+        {
+            if (Status != ExceptionCaseStatus.Investigating)
+            {
+                return DomainError.Failure(
+                    "ERR_INVALID_STATE_TRANSITION",
+                    $"Case '{CaseNumber}' must be in 'Investigating' status to wait for carrier update.");
+            }
+            Status = ExceptionCaseStatus.AwaitingCarrier;
+            AddTimelineEntry(
+                CaseTimelineEntryType.AwaitingCarrier,
+                actorType,
+                actorId,
+                $"Awaiting carrier update: {notes}",
+                detailsJson,
+                correlationId,
+                timeProvider);
+        }
+        else if (Status == ExceptionCaseStatus.AwaitingCarrier)
+        {
+            Status = ExceptionCaseStatus.Investigating;
+            AddTimelineEntry(
+                CaseTimelineEntryType.CarrierUpdated,
+                actorType,
+                actorId,
+                $"Carrier update received. Investigation resumed. Note: {notes}",
+                detailsJson,
+                correlationId,
+                timeProvider);
+        }
+        else
+        {
+            AddTimelineEntry(
+                CaseTimelineEntryType.CarrierUpdated,
+                actorType,
+                actorId,
+                $"Carrier update recorded: {notes}",
+                detailsJson,
+                correlationId,
+                timeProvider);
+        }
+
+        return Result.Success();
+    }
+
+    public Result StartMitigation(
+        string? plan,
+        Guid? actorId,
+        string actorType,
+        string? detailsJson,
+        string? correlationId,
+        TimeProvider timeProvider)
+    {
+        if (Status != ExceptionCaseStatus.Investigating)
+        {
+            return DomainError.Failure(
+                "ERR_INVALID_STATE_TRANSITION",
+                $"Case '{CaseNumber}' must be in 'Investigating' status to start mitigation.");
+        }
+
+        Status = ExceptionCaseStatus.Mitigating;
+        AddTimelineEntry(
+            CaseTimelineEntryType.MitigationStarted,
+            actorType,
+            actorId,
+            $"Mitigation started: {plan}",
+            detailsJson,
+            correlationId,
+            timeProvider);
+
+        return Result.Success();
+    }
+
+    public Result CompleteMitigation(
+        string? outcome,
+        Guid? actorId,
+        string actorType,
+        string? detailsJson,
+        string? correlationId,
+        TimeProvider timeProvider)
+    {
+        if (Status != ExceptionCaseStatus.Mitigating)
+        {
+            return DomainError.Failure(
+                "ERR_INVALID_STATE_TRANSITION",
+                $"Case '{CaseNumber}' is not in 'Mitigating' status.");
+        }
+
+        Status = ExceptionCaseStatus.Investigating;
+        AddTimelineEntry(
+            CaseTimelineEntryType.MitigationCompleted,
+            actorType,
+            actorId,
+            $"Mitigation completed: {outcome}",
+            detailsJson,
+            correlationId,
+            timeProvider);
+
+        return Result.Success();
+    }
+
+    public Result MarkClaimRequired(
+        string claimType,
+        decimal? estimatedLoss,
+        string reason,
+        Guid? actorId,
+        string actorType,
+        string? detailsJson,
+        string? correlationId,
+        TimeProvider timeProvider)
+    {
+        if (Status != ExceptionCaseStatus.Investigating)
+        {
+            return DomainError.Failure(
+                "ERR_INVALID_STATE_TRANSITION",
+                $"Case '{CaseNumber}' must be in 'Investigating' status to mark claim required.");
+        }
+
+        Status = ExceptionCaseStatus.ClaimRequired;
+        if (estimatedLoss.HasValue && estimatedLoss.Value >= 0)
+        {
+            FinancialExposure = estimatedLoss.Value;
+        }
+
+        AddTimelineEntry(
+            CaseTimelineEntryType.ClaimRequired,
+            actorType,
+            actorId,
+            $"Confirmed financial claim required ({claimType}). Reason: {reason}",
+            detailsJson,
+            correlationId,
+            timeProvider);
+
+        return Result.Success();
+    }
+
+    public Result Resolve(
+        string? resolutionCode,
+        string? rootCauseCode,
+        string? dispositionCode,
+        string notes,
+        Guid? actorId,
+        string actorType,
+        string? detailsJson,
+        string? correlationId,
+        TimeProvider timeProvider)
+    {
+        if (Status != ExceptionCaseStatus.Investigating && Status != ExceptionCaseStatus.ClaimRequired)
+        {
+            return DomainError.Failure(
+                "ERR_INVALID_STATE_TRANSITION",
+                $"Case '{CaseNumber}' cannot be resolved from status '{Status}'. Must be in 'Investigating' or 'ClaimRequired'.");
+        }
+
+        Status = ExceptionCaseStatus.Resolved;
+        ResolvedAtUtc = timeProvider.GetUtcNow();
+        RootCauseCode = rootCauseCode?.Trim() ?? RootCauseCode;
+        DispositionCode = dispositionCode?.Trim() ?? DispositionCode;
+
+        AddTimelineEntry(
+            CaseTimelineEntryType.Resolved,
+            actorType,
+            actorId,
+            $"Case resolved. Code: {resolutionCode}. Notes: {notes}",
+            detailsJson,
+            correlationId,
+            timeProvider);
+
+        return Result.Success();
+    }
+
+    public Result Close(
+        string? notes,
+        bool hasIncompleteMandatoryTasks,
+        Guid? actorId,
+        string actorType,
+        string? detailsJson,
+        string? correlationId,
+        TimeProvider timeProvider)
+    {
+        if (Status != ExceptionCaseStatus.Resolved)
+        {
+            return DomainError.Failure(
+                "ERR_INVALID_STATE_TRANSITION",
+                $"Case '{CaseNumber}' cannot be closed from status '{Status}'. Only 'Resolved' cases can be closed.");
+        }
+
+        // Spec §10.3 Invariant 6: A case cannot close with mandatory incomplete tasks unless waived by an authorized actor with reason
+        if (hasIncompleteMandatoryTasks)
+        {
+            return DomainError.Failure(
+                "ERR_CASE_MANDATORY_TASKS_INCOMPLETE",
+                $"Case '{CaseNumber}' cannot be closed because it has incomplete mandatory tasks that have not been waived.");
+        }
+
+        Status = ExceptionCaseStatus.Closed;
+        ClosedAtUtc = timeProvider.GetUtcNow();
+
+        AddTimelineEntry(
+            CaseTimelineEntryType.Closed,
+            actorType,
+            actorId,
+            $"Case closed. Note: {notes}",
+            detailsJson,
+            correlationId,
+            timeProvider);
+
+        return Result.Success();
+    }
+
+    public Result Reopen(
+        string reason,
+        Guid? actorId,
+        string actorType,
+        string? detailsJson,
+        string? correlationId,
+        TimeProvider timeProvider)
+    {
+        if (Status != ExceptionCaseStatus.Closed)
+        {
+            return DomainError.Failure(
+                "ERR_INVALID_STATE_TRANSITION",
+                $"Case '{CaseNumber}' cannot be reopened from status '{Status}'. Only 'Closed' cases can be reopened.");
+        }
+
+        Status = ExceptionCaseStatus.Reopened;
+        ResolvedAtUtc = null;
+        ClosedAtUtc = null;
+
+        AddTimelineEntry(
+            CaseTimelineEntryType.Reopened,
+            actorType,
+            actorId,
+            $"Case reopened: {reason}",
+            detailsJson,
+            correlationId,
+            timeProvider);
+
+        return Result.Success();
+    }
+
+    public Result ChangeSeverity(
+        string newSeverity,
+        string? reasonCode,
+        string reason,
+        Guid? actorId,
+        string actorType,
+        string? detailsJson,
+        string? correlationId,
+        TimeProvider timeProvider)
+    {
+        if (!ExceptionCaseStatus.IsActive(Status))
+        {
+            return DomainError.Failure(
+                "ERR_INVALID_STATE_TRANSITION",
+                $"Case '{CaseNumber}' is inactive ({Status}) and severity cannot be changed.");
+        }
+
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return DomainError.Failure("ERR_VALIDATION_FAILED", "A reason is required to change case severity (spec §10.3).");
+        }
+
+        var oldSeverity = Severity;
+        Severity = newSeverity;
+
+        AddTimelineEntry(
+            CaseTimelineEntryType.SeverityChanged,
+            actorType,
+            actorId,
+            $"Severity changed from '{oldSeverity}' to '{newSeverity}'. Reason code: '{reasonCode}'. Reason: {reason}",
+            detailsJson,
+            correlationId,
+            timeProvider);
+
+        return Result.Success();
+    }
+
+    public Result Reclassify(
+        string newExceptionType,
+        string reason,
+        Guid? actorId,
+        string actorType,
+        string? detailsJson,
+        string? correlationId,
+        TimeProvider timeProvider)
+    {
+        if (!ExceptionCaseStatus.IsActive(Status))
+        {
+            return DomainError.Failure(
+                "ERR_INVALID_STATE_TRANSITION",
+                $"Case '{CaseNumber}' is inactive ({Status}) and cannot be reclassified.");
+        }
+
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return DomainError.Failure("ERR_VALIDATION_FAILED", "A reason is required to reclassify a case (spec §8.4).");
+        }
+
+        var oldType = ExceptionType;
+        ExceptionType = newExceptionType;
+
+        AddTimelineEntry(
+            CaseTimelineEntryType.Reclassified,
+            actorType,
+            actorId,
+            $"Case reclassified from '{oldType}' to '{newExceptionType}'. Reason: {reason}",
+            detailsJson,
+            correlationId,
+            timeProvider);
+
+        return Result.Success();
+    }
+
+    public Result AddComment(
+        string comment,
+        Guid? actorId,
+        string actorType,
+        string? correlationId,
+        TimeProvider timeProvider)
+    {
+        if (string.IsNullOrWhiteSpace(comment))
+        {
+            return DomainError.Failure("ERR_VALIDATION_FAILED", "Comment cannot be empty.");
+        }
+
+        AddTimelineEntry(
+            CaseTimelineEntryType.CommentAdded,
+            actorType,
+            actorId,
+            comment.Trim(),
+            detailsJson: null,
+            correlationId,
+            timeProvider);
+
+        return Result.Success();
     }
 
     public Result Cancel(
@@ -206,7 +711,6 @@ public sealed class ExceptionCase : IAuditableEntity, IHasConcurrencyStamp
             correlationId,
             timeProvider);
 
-        ConcurrencyStamp = Guid.NewGuid().ToString("N");
         return Result.Success();
     }
 }

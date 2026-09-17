@@ -12,7 +12,7 @@ Additionally, standardizing optimistic concurrency using a string-based `Concurr
 
 ## Decision
 1. **Auto-discovery (Reflection)**: We will override Rule 10 to allow the use of Reflection for auto-registering handlers (`AddHandlersFromAssembly`) and Minimal API endpoints (`MapEndpointsFromAssembly`). All endpoints must implement an `IEndpoint` interface.
-2. **Optimistic Concurrency**: We will replace the `long Version` property with a `string ConcurrencyStamp` property across all aggregate roots and entities. This will be standardized via an `IHasConcurrencyStamp` interface. The `ConcurrencyStamp` will be updated (e.g., using a new GUID) on every entity mutation.
+2. **Optimistic Concurrency**: We will replace the `long Version` property with a `string ConcurrencyStamp` property across all aggregate roots and entities. This is standardized via an `IHasConcurrencyStamp` interface. Concurrency token comparison and stamp rotation (rolling a new GUID on update, or initializing on insert) are handled centrally and exclusively inside `AppDbContext.ApplyAuditAndConcurrency()` during `SaveChangesAsync()`. Domain entity mutation methods (`Update`, `Triage`, `Assign`, `Resolve`, etc.) MUST NOT manually assign `ConcurrencyStamp`. Handlers assign `entity.ConcurrencyStamp = command.ConcurrencyStamp` to convey the client stamp to EF Core.
 
 ## Consequences
 - **Positive:** Significant reduction in boilerplate code in module composition roots (`PartnersModule.cs`). Easier integration for new developers familiar with ABP-style concurrency.
