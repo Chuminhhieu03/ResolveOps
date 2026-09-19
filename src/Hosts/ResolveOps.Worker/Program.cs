@@ -1,11 +1,13 @@
 using Quartz;
 using RabbitMQ.Client;
 using ResolveOps.Messaging;
+using ResolveOps.Modules.Documents;
 using ResolveOps.Modules.Exceptions;
 using ResolveOps.Modules.Workflow;
 using ResolveOps.Persistence;
 using ResolveOps.ServiceDefaults;
 using ResolveOps.Worker.Jobs;
+using ResolveOps.Worker.Services;
 
 // The Worker uses WebApplication builder (not just HostBuilder) so it can expose
 // /health/* endpoints for the Aspire dashboard and orchestration readiness probes.
@@ -50,18 +52,22 @@ builder.Services.Configure<ResolveOps.Messaging.Options.OutboxOptions>(
 builder.Services.Configure<ResolveOps.Messaging.Options.RabbitMqConsumerOptions>(
     builder.Configuration.GetSection(ResolveOps.Messaging.Options.RabbitMqConsumerOptions.SectionName));
 
-// ── Modules ──────────────────────────────────────────────────────────────
+// ── Modules ────────────────────────────────────────────────────────────────────
 builder.Services.AddExceptionsModule();
 builder.Services.AddWorkflowModule();
+builder.Services.AddDocumentsModule(builder.Configuration);
 
-// ── Messaging & Background Consumers (Phase 5, 6 & 7) ────────────────────
+// ── Messaging & Background Consumers (Phase 5, 6 & 7) ──────────────────────────────────
 builder.Services.AddScoped<IOutboxWriter, OutboxWriter>();
 builder.Services.AddSingleton<RabbitMqPublisher>();
 builder.Services.AddHostedService<OutboxPublisherService>();
 builder.Services.AddHostedService<ResolveOps.Worker.Consumers.TrackingIngestionConsumerService>();
 builder.Services.AddHostedService<ResolveOps.Worker.Consumers.ExceptionEvaluationConsumerService>();
 
-// ── Quartz.NET Scheduled Deadline Scan (Phase 7 / spec §18.2, §24) ────────
+// ── Document Processing Worker (Phase 9) ─────────────────────────────────────────
+builder.Services.AddHostedService<DocumentProcessingWorker>();
+
+// ── Quartz.NET Scheduled Jobs (Phase 7, 9 / spec §18.2, §24) ──────────────────────────
 builder.Services.AddQuartz(q =>
 {
     var jobKey = new JobKey("MissedDeadlineScanJob");
@@ -80,6 +86,16 @@ builder.Services.AddQuartz(q =>
         .WithIdentity("SlaBreachScanTrigger")
         .WithSimpleSchedule(x => x
             .WithIntervalInMinutes(1)
+            .RepeatForever()));
+
+    // Phase 9: Abandoned upload intent cleanup (runs every 6 hours)
+    var cleanupJobKey = new JobKey("AbandonedUploadCleanupJob");
+    q.AddJob<AbandonedUploadCleanupJob>(opts => opts.WithIdentity(cleanupJobKey));
+    q.AddTrigger(opts => opts
+        .ForJob(cleanupJobKey)
+        .WithIdentity("AbandonedUploadCleanupTrigger")
+        .WithSimpleSchedule(x => x
+            .WithIntervalInHours(6)
             .RepeatForever()));
 });
 builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);

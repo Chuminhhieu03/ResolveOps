@@ -27,6 +27,7 @@
     <ProjectReference Include="..\..\Modules\ResolveOps.Modules.Tracking\ResolveOps.Modules.Tracking.csproj" />
     <ProjectReference Include="..\..\Modules\ResolveOps.Modules.Exceptions\ResolveOps.Modules.Exceptions.csproj" />
     <ProjectReference Include="..\..\Modules\ResolveOps.Modules.Workflow\ResolveOps.Modules.Workflow.csproj" />
+    <ProjectReference Include="..\..\Modules\ResolveOps.Modules.Documents\ResolveOps.Modules.Documents.csproj" />
   </ItemGroup>
 
 </Project>

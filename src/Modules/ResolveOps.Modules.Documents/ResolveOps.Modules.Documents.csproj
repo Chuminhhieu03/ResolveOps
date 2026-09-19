@@ -1,9 +1,28 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AWSSDK.S3" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\BuildingBlocks\ResolveOps.Application\ResolveOps.Application.csproj" />
+    <ProjectReference Include="..\..\BuildingBlocks\ResolveOps.Domain\ResolveOps.Domain.csproj" />
+    <ProjectReference Include="..\..\BuildingBlocks\ResolveOps.Messaging\ResolveOps.Messaging.csproj" />
+    <ProjectReference Include="..\..\BuildingBlocks\ResolveOps.Observability\ResolveOps.Observability.csproj" />
+    <ProjectReference Include="..\..\BuildingBlocks\ResolveOps.Persistence\ResolveOps.Persistence.csproj" />
+  </ItemGroup>
 
 </Project>

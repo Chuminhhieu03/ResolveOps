@@ -8,7 +8,7 @@
 ## Master Specification
 
 ```
-c:\FSoft\ResolveOps\LOGISTICS_EXCEPTION_CARRIER_CLAIMS_MASTER_SPEC.md
+c:\Personal\ResolveOps\LOGISTICS_EXCEPTION_CARRIER_CLAIMS_MASTER_SPEC.md
 ```
 
 The spec is the authoritative reference. This file summarizes its key operating rules
@@ -20,10 +20,10 @@ and adds current phase status. When in conflict, the spec wins.
 
 | Field | Value |
 |---|---|
-| **Current phase** | Phase 8 — Exception case workflow, tasks, SLA |
+| **Current phase** | Phase 9 — Evidence and secure document pipeline |
 | **Phase status** | ✅ Complete |
-| **Next phase** | Phase 9 — Evidence and secure document pipeline |
-| **Last updated** | 2026-09-17 |
+| **Next phase** | Phase 10 — Claim eligibility and draft claims |
+| **Last updated** | 2026-09-19 |
 
 ### Phase 0 deliverables completed
 
@@ -157,7 +157,7 @@ The agent MUST NOT:
 | 6 | Tracking ingestion and normalization | ✅ Complete |
 | 7 | Exception policy engine and case creation | ✅ Complete |
 | 8 | Exception case workflow, tasks, SLA | ✅ Complete |
-| 9 | Evidence and secure document pipeline | ⬜ Not started |
+| 9 | Evidence and secure document pipeline | ✅ Complete |
 | 10 | Claim eligibility and draft claims | ⬜ Not started |
 | 11 | Claim approval, submission, response, appeal | ⬜ Not started |
 | 12 | Financial recovery and settlement | ⬜ Not started |

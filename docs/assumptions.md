@@ -120,3 +120,37 @@
 - **Impact:** Business / Architectural / None.
 - **ADR:** [ADR-NNN](../adr/ADR-NNN-title.md) if architectural.
 ```
+
+---
+
+## Phase 9 Assumptions
+
+### A-020 — Abandoned upload objects: soft-removal only, no MinIO deletion
+
+- **Date:** 2026-09-17
+- **Status:** Active
+- **Context:** `AbandonedUploadCleanupJob` identifies `PendingUpload` documents older than 24 hours. A client may never have uploaded an object to MinIO (the upload intent was issued but the PUT never executed), so no object may exist to delete.
+- **Decision:** The cleanup job marks documents as `Removed` in the database only. No MinIO object deletion is attempted in Phase 9. Physical MinIO cleanup (verifying object existence, then deleting if present) is deferred to Phase 16 as part of storage housekeeping.
+- **Reversible:** Yes — Phase 16 can add a delete step to the job.
+- **Impact:** Abandoned objects accumulate in MinIO between Phase 9 and Phase 16. The bucket is private; objects are inaccessible without new presigned URLs.
+- **ADR:** [ADR-026](../adr/ADR-026-evidence-and-secure-document-pipeline.md)
+
+### A-021 — DocumentProcessingWorker uses DB polling, not RabbitMQ queue
+
+- **Date:** 2026-09-17
+- **Status:** Active
+- **Context:** Spec §17.4 describes a `resolveops.document-processing` queue for decoupled scan processing. However, Phase 9 is focused on proving the pipeline end-to-end. Adding a new queue consumer would increase topology complexity and RabbitMQ configuration surface without business benefit at current throughput.
+- **Decision:** `DocumentProcessingWorker` polls the database every 10 seconds for `PendingScan` documents. This introduces up to 10 seconds of latency before scanning begins. Acceptable for MVP.
+- **Reversible:** Yes — Phase 16 will replace the polling loop with a RabbitMQ consumer using the `resolveops.document-processing` queue.
+- **Impact:** Up to 10s delay in scan start; no functional difference in end state.
+- **ADR:** [ADR-026](../adr/ADR-026-evidence-and-secure-document-pipeline.md)
+
+### A-022 — EvidenceRequirement is write-once; no ConcurrencyStamp or audit fields
+
+- **Date:** 2026-09-17
+- **Status:** Active
+- **Context:** `EvidenceRequirement` rows encode policy-driven evidence rules tied to a `PolicyVersionId`. Once created they are never mutated in-place — changes to requirements are expressed as new rows under a new policy version (consistent with the `ExceptionPolicy`/`ExceptionPolicyVersion` pattern already in the codebase).
+- **Decision:** `EvidenceRequirement` does not implement `IHasConcurrencyStamp` or any audit-trail interfaces. There are no `UpdatedAt` or `UpdatedBy` fields.
+- **Reversible:** Yes — if mutable requirements are needed, ConcurrencyStamp and audit columns can be added in a migration.
+- **Impact:** None on business logic. Configuration data is immutable after insertion.
+

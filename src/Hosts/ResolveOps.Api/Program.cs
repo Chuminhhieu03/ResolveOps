@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using ResolveOps.Api;
 using ResolveOps.Api.Infrastructure;
 using ResolveOps.Domain.Identity;
+using ResolveOps.Modules.Documents;
 using ResolveOps.Modules.Exceptions;
 using ResolveOps.Modules.Identity;
 using ResolveOps.Modules.Integrations;
@@ -97,6 +98,7 @@ builder.Services.AddIntegrationsModule();
 builder.Services.AddTrackingModule();
 builder.Services.AddExceptionsModule();
 builder.Services.AddWorkflowModule();
+builder.Services.AddDocumentsModule(builder.Configuration);
 
 builder.Services.AddScoped<ResolveOps.Application.IErrorMessageProvider, ResolveOps.Persistence.Services.DatabaseErrorMessageProvider>();
 builder.Services.AddScoped<ResolveOps.Application.Idempotency.IIdempotencyStore, ResolveOps.Persistence.Services.EfCoreIdempotencyStore>();
@@ -138,8 +140,8 @@ if (app.Environment.IsDevelopment())
 app.MapGet("/api/version", () => new
 {
     Product = "ResolveOps",
-    Phase = "8",
-    Description = "Exception case workflow, tasks, SLA",
+    Phase = "9",
+    Description = "Evidence and secure document pipeline",
     BuildTimestamp = DateTime.UtcNow.ToString("O"),
 })
 .WithName("GetVersion")
@@ -154,6 +156,7 @@ app.MapIntegrationsEndpoints();
 app.MapTrackingEndpoints();
 app.MapExceptionsEndpoints();
 app.MapWorkflowEndpoints();
+app.MapDocumentsEndpoints();
 
 // ─────────────────────────────────────────────────────────────────────────
 

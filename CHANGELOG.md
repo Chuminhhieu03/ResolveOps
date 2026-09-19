@@ -10,6 +10,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Phase 9 (Evidence and secure document pipeline)**:
+  - Added `EvidenceDocument` aggregate and `EvidenceRequirement` domain entities in `ResolveOps.Domain.Documents`.
+  - Added `EvidenceType` (`DeliveryReceiptProof`, `PhotosOfDamageProof`, `CommercialInvoiceProof`, `PackingListProof`, `CarrierInspectionReport`, `WeightCertificate`, `CustomsDocumentation`, `CustomerAffidavit`, `WrittenDenialOrCorrespondence`, `PoliceReport`, `Other`), `DocumentStatus` (`PendingUpload`, `PendingScan`, `Available`, `RejectedScanFailed`, `Superseded`, `Archived`), and `DocumentScanStatus` (`NotScanned`, `Clean`, `Infected`, `ScanFailed`, `Exempt`).
+  - Added S3-compatible `IObjectStorageService` / `MinIoObjectStorageService` implementation using `AWSSDK.S3` for generating presigned upload/download URLs with strictly bounded TTLs and non-guessable storage object keys (`tenants/{tenantId}/{evidenceType}/{yyyy}/{MM}/{guid}-{sanitizedFileName}`).
+  - Implemented `IMalwareScanner` and `DevelopmentMalwareScanner` with deterministic detection of standard EICAR test signatures.
+  - Implemented `DocumentProcessingWorker` background service in `ResolveOps.Worker`: scans pending uploads, verifies file size and SHA-256 hash against storage stream, scans for malware signatures, transitions status to `Available` or `RejectedScanFailed`, and atomically emits `EvidenceAvailableV1` to the Outbox.
+  - Implemented `AbandonedUploadCleanupJob` Quartz.NET job running hourly to clean up documents stuck in `PendingUpload` past TTL.
+  - Implemented 8 vertical slice Minimal API endpoints in `ResolveOps.Modules.Documents`:
+    - `POST /api/evidence/upload-intent` (creates upload intent & presigned PUT URL)
+    - `POST /api/evidence/{id}/complete-upload` (notifies upload completion, schedules verification)
+    - `POST /api/evidence/{id}/download-intent` (generates short-lived presigned GET URL with audit trail)
+    - `GET /api/evidence/{id}` (retrieves document metadata)
+    - `GET /api/exceptions/{caseId}/evidence` (lists evidence documents linked to a case)
+    - `POST /api/evidence/{id}/supersede` (supersedes an existing document with a new revision, preserving version history)
+    - `DELETE /api/evidence/{id}` (soft-deletes/archives document)
+    - `GET /api/claims/{claimId}/evidence-checklist` (evaluates uploaded evidence against carrier requirement definitions)
+  - Added EF Core configurations for `EvidenceDocument` and `EvidenceRequirement` with tenant query filters, foreign keys, and indexes.
+  - Generated EF Core migration `20260919140212_AddEvidenceAndSecureDocumentPipeline`.
+  - Added OpenTelemetry metrics (`documents.uploaded.total`, `documents.scanned.total`, `documents.scan_failed.total`, `documents.downloaded.total`) and meter `ResolveOps.Documents` in `ResolveOps.Observability`.
+  - Added ADR-026 (`docs/adr/ADR-026-evidence-and-secure-document-pipeline.md`).
+
 - **Phase 8 (Exception case workflow, tasks, SLA)**:
   - Added `WorkflowTask`, `SlaPolicy`, `SlaPolicyVersion`, `SlaClock`, and `SlaClockPause` domain entities in `ResolveOps.Domain.Workflow`.
   - Added `WorkflowTaskStatus`, `WorkflowTaskPriority`, `WorkflowTaskType`, `SlaClockStatus`, `SlaClockType` domain enums.

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using ResolveOps.Domain;
+using ResolveOps.Domain.Documents;
 using ResolveOps.Domain.Exceptions;
 using ResolveOps.Domain.Identity;
 using ResolveOps.Domain.Messaging;
@@ -91,6 +92,10 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
     public DbSet<SlaPolicyVersion> SlaPolicyVersions => Set<SlaPolicyVersion>();
     public DbSet<SlaClock> SlaClocks => Set<SlaClock>();
     public DbSet<SlaClockPause> SlaClockPauses => Set<SlaClockPause>();
+
+    // ── Documents (Phase 9) ───────────────────────────────────────────────────
+    public DbSet<EvidenceDocument> EvidenceDocuments => Set<EvidenceDocument>();
+    public DbSet<EvidenceRequirement> EvidenceRequirements => Set<EvidenceRequirement>();
 
     // ── Messaging (Phase 5) ───────────────────────────────────────────────────
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
@@ -251,6 +256,13 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
 
         builder.Entity<SlaClockPause>()
             .HasQueryFilter(p => _currentTenantId == null || p.TenantId == _currentTenantId);
+
+        // Documents — all entities are tenant-scoped (Phase 9)
+        builder.Entity<EvidenceDocument>()
+            .HasQueryFilter(d => _currentTenantId == null || d.TenantId == _currentTenantId);
+
+        builder.Entity<EvidenceRequirement>()
+            .HasQueryFilter(r => _currentTenantId == null || r.TenantId == _currentTenantId);
 
         // Messaging — OutboxMessage has nullable TenantId (system events have no tenant).
         // No global filter on OutboxMessage/InboxMessage/IdempotencyRecord — the publisher
