@@ -7,7 +7,6 @@ using ResolveOps.Modules.Workflow;
 using ResolveOps.Persistence;
 using ResolveOps.ServiceDefaults;
 using ResolveOps.Worker.Jobs;
-using ResolveOps.Worker.Services;
 
 // The Worker uses WebApplication builder (not just HostBuilder) so it can expose
 // /health/* endpoints for the Aspire dashboard and orchestration readiness probes.
@@ -64,10 +63,7 @@ builder.Services.AddHostedService<OutboxPublisherService>();
 builder.Services.AddHostedService<ResolveOps.Worker.Consumers.TrackingIngestionConsumerService>();
 builder.Services.AddHostedService<ResolveOps.Worker.Consumers.ExceptionEvaluationConsumerService>();
 
-// ── Document Processing Worker (Phase 9) ─────────────────────────────────────────
-builder.Services.AddHostedService<DocumentProcessingWorker>();
-
-// ── Quartz.NET Scheduled Jobs (Phase 7, 9 / spec §18.2, §24) ──────────────────────────
+// ── Quartz.NET Scheduled Jobs (Phase 7, 8, 9 / spec §18.2, §24) ──────────────────────
 builder.Services.AddQuartz(q =>
 {
     var jobKey = new JobKey("MissedDeadlineScanJob");
@@ -86,6 +82,16 @@ builder.Services.AddQuartz(q =>
         .WithIdentity("SlaBreachScanTrigger")
         .WithSimpleSchedule(x => x
             .WithIntervalInMinutes(1)
+            .RepeatForever()));
+
+    // Phase 9: Batch scan and verification of pending document uploads (runs every 10 seconds)
+    var docScanJobKey = new JobKey("DocumentProcessingScanJob");
+    q.AddJob<DocumentProcessingScanJob>(opts => opts.WithIdentity(docScanJobKey));
+    q.AddTrigger(opts => opts
+        .ForJob(docScanJobKey)
+        .WithIdentity("DocumentProcessingScanTrigger")
+        .WithSimpleSchedule(x => x
+            .WithIntervalInSeconds(10)
             .RepeatForever()));
 
     // Phase 9: Abandoned upload intent cleanup (runs every 6 hours)

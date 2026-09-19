@@ -79,7 +79,9 @@ public sealed class EvidenceDocumentConfiguration : IEntityTypeConfiguration<Evi
 
         // Duplicate checksum detection within a tenant (spec §10.4 invariant 5)
         builder.HasIndex(d => new { d.TenantId, d.Sha256 })
-            .HasDatabaseName("ix_evidence_documents_tenant_sha256");
+            .HasDatabaseName("uix_evidence_documents_tenant_sha256_available")
+            .HasFilter("[status] = 'Available'")
+            .IsUnique();
 
         // Claim evidence lookup
         builder.HasIndex(d => new { d.TenantId, d.ClaimId, d.Status })

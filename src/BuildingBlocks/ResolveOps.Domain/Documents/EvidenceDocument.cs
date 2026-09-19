@@ -164,10 +164,11 @@ public sealed class EvidenceDocument : IHasConcurrencyStamp
     {
         ArgumentNullException.ThrowIfNull(previousDocument);
 
-        var supersedeResult = previousDocument.Supersede();
-        if (!supersedeResult.IsSuccess)
+        if (previousDocument.Status != DocumentStatus.Available)
         {
-            return supersedeResult.Error!;
+            return DomainError.Failure(
+                "ERR_DOCUMENT_CANNOT_SUPERSEDE",
+                $"Only Available documents can be superseded. Document '{previousDocument.Id}' is '{previousDocument.Status}'.");
         }
 
         if (string.IsNullOrWhiteSpace(originalFileName))
@@ -234,13 +235,6 @@ public sealed class EvidenceDocument : IHasConcurrencyStamp
     /// </summary>
     public Result CompleteUpload(string sha256)
     {
-        if (Status != DocumentStatus.PendingUpload)
-        {
-            return DomainError.Failure(
-                "ERR_DOCUMENT_INVALID_TRANSITION",
-                $"Document '{Id}' cannot transition to PendingScan from status '{Status}'.");
-        }
-
         if (string.IsNullOrWhiteSpace(sha256) || sha256.Length != 64)
         {
             return DomainError.Failure(
@@ -248,8 +242,24 @@ public sealed class EvidenceDocument : IHasConcurrencyStamp
                 "A valid 64-character hex SHA-256 checksum is required.");
         }
 
+        var normalizedSha = sha256.ToLowerInvariant().Trim();
+
+        // Idempotency: if already completed upload with the same checksum, return success.
+        if ((Status == DocumentStatus.PendingScan || Status == DocumentStatus.Available) &&
+            string.Equals(Sha256, normalizedSha, StringComparison.OrdinalIgnoreCase))
+        {
+            return Result.Success();
+        }
+
+        if (Status != DocumentStatus.PendingUpload)
+        {
+            return DomainError.Failure(
+                "ERR_DOCUMENT_INVALID_TRANSITION",
+                $"Document '{Id}' cannot transition to PendingScan from status '{Status}'.");
+        }
+
         Status = DocumentStatus.PendingScan;
-        Sha256 = sha256.ToLowerInvariant().Trim();
+        Sha256 = normalizedSha;
         return Result.Success();
     }
 

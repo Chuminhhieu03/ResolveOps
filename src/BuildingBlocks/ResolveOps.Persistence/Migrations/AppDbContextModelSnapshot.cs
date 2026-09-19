@@ -291,7 +291,9 @@ namespace ResolveOps.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("TenantId", "Sha256")
-                        .HasDatabaseName("ix_evidence_documents_tenant_sha256");
+                        .IsUnique()
+                        .HasDatabaseName("uix_evidence_documents_tenant_sha256_available")
+                        .HasFilter("[status] = 'Available'");
 
                     b.HasIndex("TenantId", "ClaimId", "Status")
                         .HasDatabaseName("ix_evidence_documents_tenant_claim_status");
