@@ -20,9 +20,9 @@ and adds current phase status. When in conflict, the spec wins.
 
 | Field | Value |
 |---|---|
-| **Current phase** | Phase 9 — Evidence and secure document pipeline |
+| **Current phase** | Phase 10 — Claim eligibility and draft claims |
 | **Phase status** | ✅ Complete |
-| **Next phase** | Phase 10 — Claim eligibility and draft claims |
+| **Next phase** | Phase 11 — Claim approval, submission, response, appeal |
 | **Last updated** | 2026-09-19 |
 
 ### Phase 0 deliverables completed

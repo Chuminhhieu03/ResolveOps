@@ -1,6 +1,6 @@
 # ResolveOps — Agent Execution Prompt
 
-> **Hướng dẫn dùng:** Copy toàn bộ prompt dưới đây và gửi cho agent để thực hiện Phase 9.
+> **Hướng dẫn dùng:** Copy toàn bộ prompt dưới đây và gửi cho agent để thực hiện Phase 10.
 
 ---
 
@@ -20,18 +20,19 @@ c:\Personal\ResolveOps\LOGISTICS_EXCEPTION_CARRIER_CLAIMS_MASTER_SPEC.md
 
 Read the specification before making any changes. Pay special attention to:
 - Section 0: Agent rules and non-negotiable constraints
-- Section 8.6: Evidence collection workflow & metadata requirements
-- Section 9.1: Exception case states & evidence integration (`AwaitingEvidence` -> `Investigating`)
-- Section 10.4: Evidence invariants (scanned before available, single tenant, non-guessable partition path, MIME type validation, duplicate checksum check, versioning/superseding, legal hold, no permanent public URLs)
-- Section 12: Architecture and module structure (`ResolveOps.Modules.Documents`, `ResolveOps.Domain`, `ResolveOps.Application`)
-- Section 13.3: Technology stack (MinIO / AWSSDK.S3)
-- Section 15.9: Document tables (`evidence_documents`, `evidence_requirements`)
-- Section 16.9: Evidence endpoints (`/api/exceptions/{caseId}/evidence`, upload intents, complete-upload, download intent, supersede, remove, evidence checklist)
-- Section 17.3: Outbox integration event (`EvidenceAvailableV1`)
-- Section 18.1 & 18.2: Required workers & scheduler (`DocumentProcessingWorker`, `AbandonedUploadCleanupJob` in Quartz.NET)
-- Section 24: Implementation roadmap and Phase 9 definition
-- Section 25: Coding standards
-- `AGENTS.md` in the repository root and `docs/adr/ADR-005-minio-object-storage.md`
+- Section 8.7: Claim eligibility & preparation workflow (deterministic eligibility inputs, reason codes, policy versions)
+- Section 8.8: Claim review and submission preparation (loss components, claim amount calculation, readiness checks)
+- Section 9.2: Claim states (`Draft`, `EvidencePending`, `ReadyForReview`, `ApprovedForSubmission`, `Submitted`, etc.)
+- Section 10.5: Claim invariants (eligible case, compatible claim type, positive claimed amount, single currency, duplicate active claim prevention, AI forbidden from financial transitions)
+- Section 10.6: Tenant invariants (tenant isolation on all queries, commands, unique indexes)
+- Section 11: Edge cases (Edge Case 8: claim deadline falling on holidays/business calendar; Edge Case 9: currency consistency)
+- Section 12: Architecture and module structure (`ResolveOps.Modules.Claims`, `ResolveOps.Domain`, `ResolveOps.Application`, `ResolveOps.Persistence`)
+- Section 15.10: Claim tables (`claims`, `claim_loss_components`)
+- Section 16.10: Claim endpoints (`POST /exceptions/{caseId}/claims`, `GET /claims`, `GET /claims/{claimId}`, `POST /claims/{claimId}/loss-components`, `PUT /claims/{claimId}/loss-components/{componentId}`, `DELETE /claims/{claimId}/loss-components/{componentId}`, `POST /claims/{claimId}/calculate-eligibility`, readiness evaluation)
+- Section 17.3: Outbox integration events (`EvidenceAvailableV1` triggering claim readiness evaluation)
+- Section 24: Implementation roadmap and Phase 10 definition
+- Section 25: Coding standards (C# 13 / .NET 10, explicit mapping, no generic repo, 1 class per file)
+- `AGENTS.md` in the repository root and `docs/adr/ADR-006-domain-model-and-concurrency.md`
 
 ## Technology Stack (mandatory — do not substitute)
 
@@ -56,104 +57,117 @@ Read the specification before making any changes. Pay special attention to:
 
 ## Current Implementation State
 
-**Current phase:** `Phase 9 — Evidence and secure document pipeline`
+**Current phase:** `Phase 10 — Claim eligibility and draft claims`
 
-**Phases already completed:** `Phase 0 (structure), Phase 1 (foundation), Phase 2 (tenancy/identity), Phase 3 (partners/locations/calendar), Phase 4 (shipment domain), Phase 5 (messaging/outbox/inbox/RabbitMQ), Phase 6 (tracking ingestion & normalization), Phase 7 (exception policy engine & case creation), Phase 8 (exception case workflow, tasks, SLA)`
+**Phases already completed:** `Phase 0 (structure), Phase 1 (foundation), Phase 2 (tenancy/identity), Phase 3 (partners/locations/calendar), Phase 4 (shipment domain), Phase 5 (messaging/outbox/inbox/RabbitMQ), Phase 6 (tracking ingestion & normalization), Phase 7 (exception policy engine & case creation), Phase 8 (exception case workflow, tasks, SLA), Phase 9 (evidence and secure document pipeline)`
 
 **Repository state summary:**
 ```
 - Solution builds cleanly in Release mode with warnings as errors (0 errors, 0 warnings).
 - Architecture tests pass (5 passed, 0 failed).
 - Clean Modular Monolith architecture with .NET 10 Minimal APIs and Vertical Slice Architecture.
+- Strict 1-class-per-file convention enforced across all vertical slices (<Feature>Command.cs, <Feature>Endpoint.cs, <Feature>Handler.cs, <Feature>Validator.cs, <Feature>Response.cs). Do NOT combine multiple classes into one file.
 - Auto-Discovery implemented for Modules, Endpoints, and Handlers (AddHandlersFromAssembly, MapEndpoints).
 - DomainErrors unified via ErrorTemplates table and DatabaseErrorMessageProvider returning RFC 7807 Problem Details.
-- Centralized optimistic concurrency via string ConcurrencyStamp in AppDbContext.ApplyAuditAndConcurrency() (domain methods do not manually assign stamps).
-- Database schema: Migrations through 20260917152415_AddWorkflowTasksAndSlaClocks are applied.
-- Background workers running in ResolveOps.Worker:
+- Centralized optimistic concurrency via string ConcurrencyStamp in AppDbContext.ApplyAuditAndConcurrency() (domain methods do NOT manually assign or roll stamps).
+- Database schema: Migrations through 20260919153000_UpdateEvidencePipelineInvariants are applied.
+- Background workers running in ResolveOps.Worker via Quartz.NET:
   - TrackingIngestionConsumerService (RabbitMQ v7 async consumer for raw carrier receipts)
   - ExceptionEvaluationConsumerService (RabbitMQ v7 async consumer for TrackingEventAcceptedV1)
   - MissedDeadlineScanJob (Quartz.NET 1-min periodic scan for missed shipment milestones)
   - SlaBreachScanJob (Quartz.NET 1-min periodic scan for breached SLA clocks emitting CaseSlaBreachedV1)
+  - DocumentProcessingScanJob (Quartz.NET 10-s periodic scan for pending document malware verification)
+  - AbandonedUploadCleanupJob (Quartz.NET 6-hour periodic cleanup of expired upload intents)
 - Tests: The user explicitly stated "Tôi không cần UT hay IT Test đâu" (I do not need UT or IT tests), so ALL test requirements are currently waived. Architecture tests remain strictly required.
 ```
 
 **Stopping point / specific task this session:**
 ```
-Implement Phase 9: Evidence and secure document pipeline according to Master Spec §24 Phase 9, §8.6, §9.1, §10.4, §12, §13.3, §15.9, §16.9, §17.3, §18.1–18.2:
+Implement Phase 10: Claim eligibility and draft claims according to Master Spec §24 Phase 10, §8.7, §8.8, §9.2, §10.5, §10.6, §11, §12, §15.10, §16.10, §25:
 
-1. Evidence Domain Aggregate & Requirements (Spec §8.6, §10.4, §15.9):
-   - Create domain entities in `src/BuildingBlocks/ResolveOps.Domain/Documents/`:
-     - `EvidenceDocument`:
-       - Fields: `Id`, `TenantId`, `CaseId`, `ClaimId` (nullable), `EvidenceType` (SignedPOD, DamagePhotos, CommercialInvoice, PackingList, InspectionReport, CarrierNotice, RepairEstimate, SalvageReceipt, WeightCertificate, Other), `Status` (PendingUpload, PendingScan, Available, Superseded, Rejected, Quarantined, Removed), `OriginalFileName`, `StorageObjectName`, `StorageContainer`, `ContentType`, `SizeBytes`, `Sha256`, `DocumentDate`, `Issuer`, `VersionNumber`, `SupersedesDocumentId` (nullable), `UploadedBy`, `UploadedAtUtc`, `ScanStatus` (Pending, Clean, Malicious, Failed), `ScanCompletedAtUtc`, `RetentionUntil`, `LegalHold`, `ConcurrencyStamp`.
-       - Domain methods: `CompleteUpload`, `MarkScanClean`, `MarkScanMalicious`, `MarkScanFailed`, `Supersede`, `MarkRemoved`, `ToggleLegalHold`.
-       - Invariant §10.4: Evidence unavailable to business workflows until scan status is `Available`.
-       - Invariant §10.4: Cannot remove a document under `LegalHold`.
-       - Invariant §10.4: Superseding does not erase prior versions; older document enters status `Superseded`.
-     - `EvidenceRequirement`:
-       - Fields: `Id`, `TenantId`, `PolicyVersionId`, `ExceptionType`, `ClaimType` (nullable), `EvidenceType`, `IsMandatory`, `ConditionJson`.
-   - Implement `EvidenceType`, `DocumentStatus`, `ScanStatus` constants/enums.
+1. Claim Aggregate, Loss Component & Money Value Object (Spec §8.7, §10.5, §15.10):
+   - Create domain entities in `src/BuildingBlocks/ResolveOps.Domain/Claims/`:
+     - `Money` Value Object:
+       - Fields: `decimal Amount`, `string Currency` (3-letter uppercase ISO, e.g. "USD", "VND", "EUR").
+       - Methods: `Add(Money)`, `Subtract(Money)`, `Multiply(decimal factor)`, `IsZero()`, comparison operators (`==`, `!=`, `<`, `>`).
+       - Invariants: Currency must match on arithmetic; Amount must be >= 0 for prices/components; NEVER use float or double.
+     - `Claim` Aggregate Root:
+       - Fields: `Id`, `TenantId`, `ClaimNumber` (human-readable string e.g. "CLM-2026-000001"), `CaseId`, `CarrierId`, `ClaimType` (CargoDamage, TotalLoss, Shortage, Delay), `Status` (Draft, EvidencePending, ReadyForReview, ApprovedForSubmission, Submitted, Cancelled - §9.2), `EligibilityStatus` (Eligible, ConditionallyEligible, NotEligible, InsufficientInformation - §8.7), `EligibilityReasonCodes` (JSON or string array), `PolicyVersionId`, `ClaimDeadlineAtUtc`, `ClaimedAmount` (`decimal(19,4)`), `ApprovedAmount` (`decimal(19,4)` default 0), `RecoveredAmount` (`decimal(19,4)` default 0), `Currency` (`nchar(3)`), `ExternalSubmissionReference`, `SubmittedAtUtc`, `ApprovedForSubmissionBy`, `ApprovedForSubmissionAtUtc`, `ClosedAtUtc`, `CreatedAtUtc`, `UpdatedAtUtc`, `ConcurrencyStamp`.
+       - Collection: `LossComponents` (`IReadOnlyCollection<ClaimLossComponent>`).
+       - Domain methods:
+         - `CreateDraft(...)`: Factory method validating case eligibility, calculating filing deadline, setting initial status (`Draft` or `EvidencePending`).
+         - `AddLossComponent(...)`: Validates currency matches claim currency, amount > 0, recalculates `ClaimedAmount`.
+         - `UpdateLossComponent(...)`: Updates description, quantity, unit amount, total, recalculates `ClaimedAmount`.
+         - `RemoveLossComponent(...)`: Removes component, recalculates `ClaimedAmount`.
+         - `SetEligibility(status, reasonCodes, policyVersionId, deadlineUtc)`: Updates eligibility decision deterministically.
+         - `UpdateReadiness(bool hasMissingMandatoryEvidence)`: Transitions between `Draft` and `EvidencePending` based on evidence readiness.
+         - `MarkReadyForReview()`: Transitions to `ReadyForReview` if all validation passes (claimed amount > 0, no missing mandatory evidence, deadline not expired, eligibility is Eligible or ConditionallyEligible).
+         - Invariants (§10.5): Claimed amount strictly equals the sum of validated loss components; positive claimed amount; single currency per claim; paid/closed claim immutable.
+     - `ClaimLossComponent`:
+       - Fields: `Id`, `TenantId`, `ClaimId`, `ComponentType` (FreightCharge, CargoValue, ReplacementCost, TaxOrFee, Repairs, Other), `Description`, `Quantity` (decimal nullable), `UnitAmount` (decimal nullable), `Amount` (decimal(19,4)), `Currency` (3-letter ISO), `SourceDocumentId` (nullable Guid referencing `EvidenceDocument`).
+     - Enums/Constants: `ClaimType`, `ClaimStatus`, `ClaimEligibilityStatus`, `LossComponentType`.
 
-2. Object Storage Service & MinIO / S3 Integration (Spec §13.3, ADR-005):
-   - Add `AWSSDK.S3` dependency to Central Package Management (`Directory.Packages.props`) and project references.
-   - Define `IObjectStorageService` in `ResolveOps.Application`:
-     - `GenerateUploadPresignedUrlAsync(string container, string objectName, string contentType, TimeSpan expiry, CancellationToken ct)`
-     - `GenerateDownloadPresignedUrlAsync(string container, string objectName, TimeSpan expiry, string? downloadFileName, CancellationToken ct)`
-     - `ObjectExistsAsync(string container, string objectName, CancellationToken ct)`
-     - `GetObjectMetadataAsync(string container, string objectName, CancellationToken ct)`
-     - `OpenReadStreamAsync(string container, string objectName, CancellationToken ct)`
-     - `DeleteObjectAsync(string container, string objectName, CancellationToken ct)`
-   - Implement `MinIoObjectStorageService` using `IAmazonS3` configured with MinIO endpoint, credentials, and path-style addressing (`ForcePathStyle = true`).
-   - Tenant isolation: Object path MUST use tenant partition: `tenants/{tenantId}/cases/{caseId}/{evidenceType}/{documentId}_{safeFileName}`.
-   - Presigned URLs: Short-lived expiration (e.g. 15-30 minutes); permanent public URLs must NEVER be exposed.
+2. Deterministic Claim Eligibility & Policy Engine (Spec §8.7, §10.5):
+   - Define `IClaimEligibilityEvaluator` in `ResolveOps.Application` / `ResolveOps.Domain`:
+     - Evaluates eligibility based on:
+       - Compatibility matrix:
+         - ExceptionType `Damage` -> ClaimType `CargoDamage`, `TotalLoss`
+         - ExceptionType `Shortage` -> ClaimType `Shortage`, `TotalLoss`
+         - ExceptionType `Delay` / `InTransitDelay` -> ClaimType `Delay`
+         - Incompatible combinations yield `NotEligible` with reason code `INCOMPATIBLE_EXCEPTION_CLAIM_TYPE`.
+       - Case resolution and status (case cannot be Closed/Resolved as false alarm).
+       - Existing active claim check for same case/carrier.
+       - Filing deadline calculation: calculates carrier deadline from incident date/planned delivery date using `IBusinessCalendarService` (carrier contract filing window, e.g. 30, 60, or 90 days; accounts for working hours and holidays per Edge Case 8).
+     - Returns: `EligibilityResult(EligibilityStatus Status, string[] ReasonCodes, DateTimeOffset DeadlineAtUtc, Guid PolicyVersionId)`.
 
-3. Malware Scanner Abstraction & Processing Pipeline (Spec §8.6, §10.4, §18.1):
-   - Define `IMalwareScanner` in `ResolveOps.Application`:
-     - `ScanAsync(Stream contentStream, string fileName, CancellationToken ct)` returning `MalwareScanResult` (IsClean, ThreatName, ScanEngine).
-   - Implement a safe mock/stub scanner (`SafeMalwareScanner` / `DevelopmentMalwareScanner`) that inspects content streams, detects mock infection test markers (e.g. EICAR or configurable test signatures), and safely marks real files as clean.
-   - Implement `DocumentProcessingWorker` in `ResolveOps.Worker`:
-     - Consumes document upload completion signals (or processes `PendingScan` documents).
-     - Validates uploaded object existence in MinIO and verifies actual size.
-     - Computes SHA-256 hash streamingly; checks for duplicate checksums within the case/tenant.
-     - Invokes `IMalwareScanner`.
-     - If clean: transitions document to `ScanStatus.Clean` and `Status.Available`, writes `EvidenceAvailableV1` to Outbox, and triggers case timeline update.
-     - If infected: transitions document to `ScanStatus.Malicious` and `Status.Quarantined`, logs security alert.
-   - Implement `AbandonedUploadCleanupJob` in `ResolveOps.Worker` (Quartz.NET periodic job):
-     - Scans `evidence_documents` where `status = 'PendingUpload'` and `uploaded_at_utc` exceeded expiration window (e.g. 24h), marking them as abandoned/removed.
+3. Claim Readiness & Evidence Checklist Integration (Spec §8.8, §9.2, §16.9, §16.10):
+   - Define `IClaimReadinessEvaluator` in `ResolveOps.Application`:
+     - Cross-references active, scanned `Available` evidence documents (`evidence_documents`) in the case with `EvidenceRequirement` records (where `claim_type = Claim.ClaimType` and `exception_type = Case.ExceptionType`).
+     - Identifies all missing mandatory documents.
+     - Returns: `ClaimReadinessResult(bool IsReady, IReadOnlyList<EvidenceRequirementCheckItem> Checklist, string[] MissingRequirements)`.
+   - Invariant: A claim CANNOT transition to `ReadyForReview` if mandatory evidence is missing or unscanned/quarantined.
 
-4. Evidence REST APIs (`ResolveOps.Modules.Documents`) (Spec §16.9):
-   - `GET /api/exceptions/{caseId}/evidence`: List all evidence documents for case.
-   - `POST /api/exceptions/{caseId}/evidence/upload-intents`:
-     - Request: `evidenceType`, `fileName`, `contentType`, `sizeBytes`, `documentDate`, `issuer`.
-     - Validates allowed MIME types and max file size (e.g., 25MB for images/PDFs).
-     - Creates `EvidenceDocument` in `PendingUpload` status with non-guessable storage object path.
-     - Returns: `documentId`, `uploadMethod = "SignedUrl"`, `uploadUrl`, `expiresAt`.
-   - `POST /api/evidence/{documentId}/complete-upload`:
-     - Request: `sha256` (client hash).
-     - Transitions status to `PendingScan` and enqueues for background verification.
-   - `GET /api/evidence/{documentId}`: Returns metadata, scan status, version info.
-   - `POST /api/evidence/{documentId}/download-intent`:
-     - Verifies scan status == `Available`.
-     - Returns short-lived presigned GET URL with custom content-disposition filename.
-   - `POST /api/evidence/{documentId}/supersede`:
-     - Initiates new version upload intended to supersede an existing document.
-     - Links `SupersedesDocumentId` and increments `VersionNumber`.
-   - `POST /api/evidence/{documentId}/remove`:
-     - Checks `LegalHold == false`. Transitions status to `Removed`.
-   - `GET /api/claims/{claimId}/evidence-checklist`:
-     - Evaluates mandatory and optional `EvidenceRequirements` against active `Available` documents.
+4. Duplicate Active Claim Prevention (Spec §10.5 Invariant 1 & 10):
+   - Invariant: Only one active (status != `Cancelled`, `Closed`) claim per `(tenant_id, case_id, carrier_id)`.
+   - Enforced both at domain creation and via partial unique index in SQL Server.
 
-5. Persistence & Integration Events:
-   - EF Core configurations in `ResolveOps.Persistence`:
-     - `EvidenceDocumentConfiguration`
-     - `EvidenceRequirementConfiguration`
-   - Tenant query filters in `AppDbContext` for `EvidenceDocument` and `EvidenceRequirement`.
-   - Composite indexes: `evidence_documents(tenant_id, case_id, evidence_type, status)` and `evidence_documents(tenant_id, sha256)`.
-   - EF Core Migration: `AddEvidenceAndSecureDocumentPipeline`.
-   - Integration Event in `ResolveOps.Messaging`: `EvidenceAvailableV1(Guid DocumentId, Guid CaseId, Guid? ClaimId, string EvidenceType, DateTimeOffset AvailableAtUtc)`.
+5. Claim REST APIs (`ResolveOps.Modules.Claims`) (Spec §16.10):
+   - MUST strictly adhere to **Vertical Slice Architecture** with **1 class per file** (Separate files for Endpoint, Handler, Command/Query, Validator, Response):
+     - `CreateDraftClaim`: `POST /api/exceptions/{caseId}/claims`
+       - Request: `claimType`, `currency`, `policyVersionId` (optional), `expectedCaseVersion`.
+       - Validates eligibility, creates claim aggregate, calculates deadline, returns claim response.
+     - `GetClaims`: `GET /api/claims`
+       - Filter by `caseId`, `carrierId`, `status`, `claimType`, with pagination.
+     - `GetClaimById`: `GET /api/claims/{claimId}`
+       - Returns claim header, loss components, eligibility details, and readiness status.
+     - `AddLossComponent`: `POST /api/claims/{claimId}/loss-components`
+       - Adds component, updates claim total, returns component details.
+     - `UpdateLossComponent`: `PUT /api/claims/{claimId}/loss-components/{componentId}`
+       - Updates existing component, recalculates claim total.
+     - `RemoveLossComponent`: `DELETE /api/claims/{claimId}/loss-components/{componentId}`
+       - Removes component, recalculates claim total.
+     - `CalculateClaimEligibility`: `POST /api/claims/{claimId}/calculate-eligibility`
+       - Re-evaluates eligibility against policy and updates claim state.
+     - `GetClaimReadiness`: `GET /api/claims/{claimId}/readiness`
+       - Evaluates evidence checklist against current available documents for the case.
 
-6. Observability & Documentation:
-   - OpenTelemetry metrics in `DocumentMetrics.cs` (`documents.uploaded.total`, `documents.scanned.total`, `documents.quarantined.total`, `documents.scan.duration.ms`).
-   - Create `docs/adr/ADR-026-evidence-and-secure-document-pipeline.md`.
+6. Persistence & EF Core Configuration:
+   - EF Core configurations in `src/BuildingBlocks/ResolveOps.Persistence/Configurations/`:
+     - `ClaimConfiguration`:
+       - Table: `claims`
+       - Precision: `claimed_amount`, `approved_amount`, `recovered_amount` as `decimal(19,4)`.
+       - Unique index: `(tenant_id, claim_number)`.
+       - Partial unique index: `(tenant_id, case_id, carrier_id)` WHERE `status NOT IN ('Cancelled', 'Closed')`.
+     - `ClaimLossComponentConfiguration`:
+       - Table: `claim_loss_components`
+       - Precision: `amount` as `decimal(19,4)`, `quantity` as `decimal(18,3)`, `unit_amount` as `decimal(19,4)`.
+   - Update `AppDbContext`: Add `DbSet<Claim> Claims` and `DbSet<ClaimLossComponent> ClaimLossComponents`, configure tenant query filters.
+   - EF Core Migration: `AddClaimsAndEligibilityEngine`.
+
+7. Observability & Documentation:
+   - OpenTelemetry metrics in `ClaimMetrics.cs`:
+     - `claims.drafted.total`, `claims.eligibility.evaluated.total`, `claims.amount.claimed.total`.
+   - Create `docs/adr/ADR-027-claim-eligibility-and-draft-claims.md`.
    - Update `AGENTS.md` and `CHANGELOG.md`.
 
 Do NOT write Unit Tests or Integration Tests (waived by user).
@@ -163,54 +177,52 @@ Architecture tests and build verification with 0 warnings/errors remain mandator
 ## Your Task
 
 1. **Inspect** the existing repository and summarize its current state (files changed, migrations, tests passing).
-2. **Identify** the exact deliverables and Definition of Done for Phase 9 from the specification.
-3. **Implement only the Phase 9 scope** — do not add features from future phases (e.g., Claim aggregate in Phase 10, Carrier responses in Phase 11).
-4. **Preserve** Modular Monolith and Vertical Slice boundaries (`ResolveOps.Modules.Documents`, `ResolveOps.Domain`, `ResolveOps.Persistence`).
-5. **Apply all coding standards** from Section 25 (no `.Result`, no empty catch, use `CancellationToken`, `TimeProvider`, `DateTimeOffset`, explicit mapping).
-6. **Ensure ConcurrencyStamp integrity**: Concurrency stamps are managed centrally by `AppDbContext.ApplyAuditAndConcurrency()`; domain methods MUST NOT manually mutate stamps.
-7. **Add/update** EF Core migrations, OpenTelemetry instrumentation, and ADR-026.
-8. **Run** formatting (`dotnet format`), build (`dotnet build ResolveOps.slnx -c Release`), and architecture tests (`dotnet test tests/ResolveOps.ArchitectureTests/ -c Release`).
-9. **Fix** any failures caused by your changes before reporting done.
-10. **Update** `CHANGELOG.md` and `AGENTS.md` with current phase status.
-11. **Report** at the end: files changed, commands run, test results, assumptions made, and remaining risks.
+2. **Identify** the exact deliverables and Definition of Done for Phase 10 from the specification.
+3. **Implement only the Phase 10 scope** — do not add features from future phases (e.g., submission approval, carrier response in Phase 11, financial recovery in Phase 12).
+4. **Preserve** Modular Monolith and Vertical Slice boundaries (`ResolveOps.Modules.Claims`, `ResolveOps.Domain`, `ResolveOps.Application`, `ResolveOps.Persistence`).
+5. **Enforce 1-class-per-file**: Every vertical slice feature MUST have separate files: `<Action><Resource>Endpoint.cs`, `<Action><Resource>Handler.cs`, `<Action><Resource>Command.cs` / `Query.cs`, `<Action><Resource>Validator.cs`, `<Action><Resource>Response.cs`.
+6. **Apply all coding standards** from Section 25 (no `.Result`, no empty catch, use `CancellationToken`, `TimeProvider`, `DateTimeOffset`, explicit mapping).
+7. **Ensure ConcurrencyStamp integrity**: Concurrency stamps are managed centrally by `AppDbContext.ApplyAuditAndConcurrency()`; domain methods MUST NOT manually mutate stamps.
+8. **Add/update** EF Core migrations, OpenTelemetry instrumentation, and ADR-027.
+9. **Run** formatting (`dotnet format`), build (`dotnet build ResolveOps.slnx -c Release`), and architecture tests (`dotnet test tests/ResolveOps.ArchitectureTests/ -c Release`).
+10. **Fix** any failures caused by your changes before reporting done.
+11. **Update** `CHANGELOG.md` and `AGENTS.md` with current phase status.
+12. **Report** at the end: files changed, commands run, test results, assumptions made, and remaining risks.
 
 ## Non-negotiable Rules (from Section 0 of spec)
 
 - Do NOT add microservices, AI features, a generic repository, or unrelated features.
+- Do NOT allow an LLM or AI to approve, reject, or execute financial transitions on claims (Rule 4).
 - Do NOT bypass business invariants, tenant isolation, concurrency, idempotency, or security checks.
-- Do NOT expose permanent direct public URLs to storage objects — always use short-lived presigned URLs or authorized streaming.
-- Do NOT trust file extensions as content types.
-- Do NOT allow unscanned or quarantined files to satisfy evidence requirements.
-- Do NOT delete files under `LegalHold`.
 - Do NOT use AutoMapper — mapping must be explicit.
 - Do NOT put business logic in endpoints.
 - Do NOT use `.Result`, `.Wait()`, or sync-over-async.
 - Do NOT commit secrets, connection strings, or PII.
 - Do NOT use `DateTime.UtcNow` directly in testable business logic — use `TimeProvider`.
+- Do NOT use `float` or `double` for monetary values — always use `decimal` or the `Money` value object.
 - Empty catch blocks are forbidden.
 - If a requirement is ambiguous: choose the simplest reversible behavior, record the assumption in code comments and AGENTS.md, and continue.
-- Do NOT write Unit Tests or Integration Tests (waived by user).
+- Do NOT write Unit Tests or Integration Tests (waived by user). Architecture tests remain mandatory.
 
-## Definition of Done Checklist (Section 31 & §24 Phase 9)
+## Definition of Done Checklist (Section 31 & §24 Phase 10)
 
 Before marking the phase complete, verify:
 - [ ] Build succeeds with warnings as errors (`dotnet build ResolveOps.slnx --configuration Release`)
 - [ ] Architecture tests pass with 0 failures (`dotnet test tests/ResolveOps.ArchitectureTests/ --configuration Release`)
 - [ ] Formatting verification passes (`dotnet format ResolveOps.slnx --verify-no-changes`)
-- [ ] `EvidenceDocument` and `EvidenceRequirement` entities implemented with guarded methods
-- [ ] MinIO / S3 object storage service generates short-lived presigned upload/download URLs
-- [ ] Storage paths are non-guessable and partitioned by tenant (`tenants/{tenantId}/...`)
-- [ ] Permanent public storage URLs are never exposed
-- [ ] Unscanned or quarantined files cannot satisfy evidence checklists
-- [ ] Pluggable malware scanner inspects files and quarantines malicious content
-- [ ] Document processing worker verifies SHA-256, validates size/existence, and emits `EvidenceAvailableV1` to Outbox
-- [ ] Document versioning/superseding preserves prior versions for audit history
-- [ ] Documents under legal hold cannot be removed
-- [ ] Quartz.NET job cleans up abandoned upload intents
-- [ ] Cross-tenant document access is prevented by tenant query filters and authorization
-- [ ] EF Core migration applied for evidence documents and requirements
-- [ ] OpenTelemetry metrics and activity sources instrumented for document pipeline
-- [ ] ADR-026 written in `docs/adr/`
+- [ ] All features follow strict 1-class-per-file convention in `ResolveOps.Modules.Claims`
+- [ ] `Money` value object implemented with decimal precision and currency validations (no float/double)
+- [ ] `Claim` aggregate root and `ClaimLossComponent` entities implemented with guarded business methods
+- [ ] Deterministic claim eligibility engine evaluates compatibility between exception types and claim types
+- [ ] Claim deadline calculated using `IBusinessCalendarService` and carrier filing window
+- [ ] Claim readiness integrates with `evidence_documents` and `evidence_requirements` (Phase 9)
+- [ ] Duplicate active claims for the same case/carrier are prevented via domain check and SQL partial index
+- [ ] Claimed amount strictly equals the sum of validated loss components
+- [ ] REST API endpoints in `ResolveOps.Modules.Claims` implemented with Minimal APIs & FluentValidation
+- [ ] EF Core configurations, decimal(19,4) precision, tenant filters, and migration applied
+- [ ] Centralized `ConcurrencyStamp` optimistic concurrency preserved
+- [ ] OpenTelemetry metrics and activity sources instrumented for claim domain
+- [ ] ADR-027 written in `docs/adr/`
 - [ ] `AGENTS.md` and `CHANGELOG.md` updated with phase status
 
 ---
@@ -221,10 +233,10 @@ Before marking the phase complete, verify:
 
 | Trường | Mô tả | Ví dụ |
 |---|---|---|
-| `[Current phase]` | Phase đang làm theo Section 24 | `Phase 9 — Evidence and secure document pipeline` |
-| `[Phases already completed]` | Danh sách phase đã xong | `Phase 0, 1, 2, 3, 4, 5, 6, 7, 8` |
+| `[Current phase]` | Phase đang làm theo Section 24 | `Phase 10 — Claim eligibility and draft claims` |
+| `[Phases already completed]` | Danh sách phase đã xong | `Phase 0, 1, 2, 3, 4, 5, 6, 7, 8, 9` |
 | `[Repository state summary]` | Tình trạng repo hiện tại | Số migration, số test, file nào đang có |
-| `[Stopping point]` | Bạn đang dừng ở đâu và muốn làm gì tiếp | Triển khai MinIO storage, evidence aggregate, document worker |
+| `[Stopping point]` | Bạn đang dừng ở đâu và muốn làm gì tiếp | Triển khai Claim aggregate, Money value object, Eligibility engine, Claims API |
 
 ### Cách lấy repository state nhanh:
 

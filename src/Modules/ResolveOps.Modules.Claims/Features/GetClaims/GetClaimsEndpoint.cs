@@ -1,0 +1,35 @@
+using System;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
+using ResolveOps.Domain.Claims.Enums;
+
+namespace ResolveOps.Modules.Claims.Features.GetClaims;
+
+public static class GetClaimsEndpoint
+{
+    public static void MapEndpoint(IEndpointRouteBuilder app)
+    {
+        app.MapGet("/api/claims", async (
+            [FromQuery] Guid? caseId,
+            [FromQuery] ClaimStatus? status,
+            [FromQuery] int page,
+            [FromQuery] int pageSize,
+            [FromServices] GetClaimsHandler handler,
+            CancellationToken cancellationToken) =>
+        {
+            var query = new GetClaimsQuery(
+                caseId,
+                status,
+                page > 0 ? page : 1,
+                pageSize > 0 ? pageSize : 20);
+
+            var result = await handler.HandleAsync(query, cancellationToken);
+            return Results.Ok(result);
+        })
+        .RequireAuthorization()
+        .WithName("GetClaims")
+        .WithTags("Claims");
+    }
+}

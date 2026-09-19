@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using ResolveOps.Domain;
+using ResolveOps.Domain.Claims;
 using ResolveOps.Domain.Documents;
 using ResolveOps.Domain.Exceptions;
 using ResolveOps.Domain.Identity;
@@ -96,6 +97,10 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
     // ── Documents (Phase 9) ───────────────────────────────────────────────────
     public DbSet<EvidenceDocument> EvidenceDocuments => Set<EvidenceDocument>();
     public DbSet<EvidenceRequirement> EvidenceRequirements => Set<EvidenceRequirement>();
+
+    // ── Claims (Phase 10) ─────────────────────────────────────────────────────
+    public DbSet<Claim> Claims => Set<Claim>();
+    public DbSet<ClaimLossComponent> ClaimLossComponents => Set<ClaimLossComponent>();
 
     // ── Messaging (Phase 5) ───────────────────────────────────────────────────
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
@@ -263,6 +268,13 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
 
         builder.Entity<EvidenceRequirement>()
             .HasQueryFilter(r => _currentTenantId == null || r.TenantId == _currentTenantId);
+
+        // Claims — all entities are tenant-scoped (Phase 10)
+        builder.Entity<Claim>()
+            .HasQueryFilter(c => _currentTenantId == null || c.TenantId == _currentTenantId);
+
+        builder.Entity<ClaimLossComponent>()
+            .HasQueryFilter(lc => _currentTenantId == null || lc.TenantId == _currentTenantId);
 
         // Messaging — OutboxMessage has nullable TenantId (system events have no tenant).
         // No global filter on OutboxMessage/InboxMessage/IdempotencyRecord — the publisher
