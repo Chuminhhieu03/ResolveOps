@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using ResolveOps.Application.Claims.Readiness;
 using ResolveOps.Domain.Claims;
-using ResolveOps.Domain.Claims.Enums;
+
 using ResolveOps.Domain.Documents;
 using ResolveOps.Domain.Exceptions;
 using ResolveOps.Domain.Tenancy;

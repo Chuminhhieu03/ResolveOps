@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using ResolveOps.Domain.Claims.Enums;
+using ResolveOps.Domain.Claims;
 
 namespace ResolveOps.Modules.Claims.Features.GetClaims;
 

@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 
-namespace ResolveOps.Application.Claims.Metrics;
+namespace ResolveOps.Observability;
 
 public static class ClaimMetrics
 {

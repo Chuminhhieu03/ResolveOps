@@ -17,15 +17,12 @@ public class ClaimConfiguration : IEntityTypeConfiguration<Claim>
             .HasMaxLength(50);
 
         builder.Property(c => c.ClaimType)
-            .HasConversion<string>()
             .HasMaxLength(30);
 
         builder.Property(c => c.Status)
-            .HasConversion<string>()
             .HasMaxLength(30);
 
         builder.Property(c => c.EligibilityStatus)
-            .HasConversion<string>()
             .HasMaxLength(30);
 
         builder.Property(c => c.EligibilityReasonCodes)

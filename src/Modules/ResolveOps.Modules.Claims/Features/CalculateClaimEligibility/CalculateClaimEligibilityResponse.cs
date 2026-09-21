@@ -1,5 +1,5 @@
 using System;
-using ResolveOps.Domain.Claims.Enums;
+using ResolveOps.Domain.Claims;
 
 namespace ResolveOps.Modules.Claims.Features.CalculateClaimEligibility;
 

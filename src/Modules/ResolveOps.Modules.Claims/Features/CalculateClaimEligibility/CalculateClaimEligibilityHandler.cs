@@ -34,7 +34,7 @@ public class CalculateClaimEligibilityHandler
         var tenantId = _tenantContext.TenantId.Value;
 
         var claim = await _dbContext.Set<Claim>()
-            .FirstOrDefaultAsync(c => c.Id == command.ClaimId && c.TenantId == tenantId, cancellationToken);
+            .FirstOrDefaultAsync(c => c.Id == command.ClaimId, cancellationToken);
 
         if (claim == null)
         {
@@ -42,7 +42,7 @@ public class CalculateClaimEligibilityHandler
         }
 
         var exceptionCase = await _dbContext.Set<ExceptionCase>()
-            .FirstOrDefaultAsync(c => c.Id == claim.CaseId && c.TenantId == tenantId, cancellationToken);
+            .FirstOrDefaultAsync(c => c.Id == claim.CaseId, cancellationToken);
 
         if (exceptionCase == null)
         {

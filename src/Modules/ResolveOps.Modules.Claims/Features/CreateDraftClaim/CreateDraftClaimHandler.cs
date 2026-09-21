@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using ResolveOps.Domain;
 using ResolveOps.Domain.Claims;
 using ResolveOps.Domain.Claims.Eligibility;
-using ResolveOps.Domain.Claims.Enums;
+
 using ResolveOps.Domain.Exceptions;
 using ResolveOps.Domain.Tenancy;
 using ResolveOps.Security;
@@ -35,19 +35,17 @@ public class CreateDraftClaimHandler
         var tenantId = _tenantContext.TenantId.Value;
 
         var exceptionCase = await _dbContext.Set<ExceptionCase>()
-            .FirstOrDefaultAsync(c => c.Id == command.CaseId && c.TenantId == tenantId, cancellationToken);
+            .FirstOrDefaultAsync(c => c.Id == command.CaseId, cancellationToken);
 
         if (exceptionCase == null)
         {
             return Result<CreateDraftClaimResponse>.Failure(new DomainError("CASE_NOT_FOUND", "The specified exception case was not found."));
         }
 
-        var claimType = Enum.Parse<ClaimType>(command.ClaimType);
-
         var eligibilityResult = await _eligibilityEvaluator.EvaluateAsync(
             exceptionCase,
             command.CarrierId,
-            claimType,
+            command.ClaimType,
             cancellationToken);
 
         var claimNumber = $"CLM-{DateTimeOffset.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..6].ToUpperInvariant()}";
@@ -59,7 +57,7 @@ public class CreateDraftClaimHandler
             claimNumber,
             command.CaseId,
             command.CarrierId,
-            claimType,
+            command.ClaimType,
             command.Currency,
             eligibilityResult.Status,
             eligibilityResult.ReasonCodes,

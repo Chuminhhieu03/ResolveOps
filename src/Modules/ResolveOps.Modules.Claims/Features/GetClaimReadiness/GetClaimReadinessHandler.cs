@@ -35,7 +35,7 @@ public class GetClaimReadinessHandler
         var tenantId = _tenantContext.TenantId.Value;
 
         var claim = await _dbContext.Set<Claim>()
-            .FirstOrDefaultAsync(c => c.Id == query.ClaimId && c.TenantId == tenantId, cancellationToken);
+            .FirstOrDefaultAsync(c => c.Id == query.ClaimId, cancellationToken);
 
         if (claim == null)
         {
@@ -43,7 +43,7 @@ public class GetClaimReadinessHandler
         }
 
         var exceptionCase = await _dbContext.Set<ExceptionCase>()
-            .FirstOrDefaultAsync(c => c.Id == claim.CaseId && c.TenantId == tenantId, cancellationToken);
+            .FirstOrDefaultAsync(c => c.Id == claim.CaseId, cancellationToken);
 
         if (exceptionCase == null)
         {

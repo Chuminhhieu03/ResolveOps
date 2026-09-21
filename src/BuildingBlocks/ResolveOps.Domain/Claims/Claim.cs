@@ -1,22 +1,22 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using ResolveOps.Domain.Claims.Enums;
+
 using ResolveOps.Domain.Claims.ValueObjects;
 
 namespace ResolveOps.Domain.Claims;
 
-public class Claim : IAuditableEntity, IHasConcurrencyStamp
+public sealed class Claim : IAuditableEntity, IHasConcurrencyStamp
 {
     public Guid Id { get; private set; }
     public Guid TenantId { get; private set; }
     public string ClaimNumber { get; private set; } = string.Empty;
     public Guid CaseId { get; private set; }
     public Guid CarrierId { get; private set; }
-    public ClaimType ClaimType { get; private set; }
-    public ClaimStatus Status { get; private set; }
+    public string ClaimType { get; private set; } = string.Empty;
+    public string Status { get; private set; } = ClaimStatus.Draft;
 
-    public ClaimEligibilityStatus EligibilityStatus { get; private set; }
+    public string EligibilityStatus { get; private set; } = ClaimEligibilityStatus.Pending;
     public string[] EligibilityReasonCodes { get; private set; } = [];
     public Guid? PolicyVersionId { get; private set; }
     public DateTimeOffset? ClaimDeadlineAtUtc { get; private set; }
@@ -49,17 +49,18 @@ public class Claim : IAuditableEntity, IHasConcurrencyStamp
         string claimNumber,
         Guid caseId,
         Guid carrierId,
-        ClaimType claimType,
+        string claimType,
         string currency,
-        ClaimEligibilityStatus eligibilityStatus,
+        string eligibilityStatus,
         string[] eligibilityReasonCodes,
         Guid? policyVersionId,
         DateTimeOffset? deadlineAtUtc)
     {
-        if (eligibilityStatus == ClaimEligibilityStatus.NotEligible)
-        {
-            return Result<Claim>.Failure(new DomainError("CLAIM_NOT_ELIGIBLE", "Case is not eligible for this claim type."));
-        }
+        if (!ResolveOps.Domain.Claims.ClaimType.All.Contains(claimType))
+            return Result<Claim>.Failure(new DomainError("INVALID_CLAIM_TYPE", "Invalid claim type."));
+
+        if (!ResolveOps.Domain.Claims.ClaimEligibilityStatus.All.Contains(eligibilityStatus))
+            return Result<Claim>.Failure(new DomainError("INVALID_ELIGIBILITY_STATUS", "Invalid eligibility status."));
 
         var claim = new Claim
         {
@@ -69,22 +70,20 @@ public class Claim : IAuditableEntity, IHasConcurrencyStamp
             CaseId = caseId,
             CarrierId = carrierId,
             ClaimType = claimType,
-            Currency = currency.ToUpperInvariant(),
+            Currency = currency,
             Status = ClaimStatus.Draft,
             EligibilityStatus = eligibilityStatus,
             EligibilityReasonCodes = eligibilityReasonCodes,
             PolicyVersionId = policyVersionId,
             ClaimDeadlineAtUtc = deadlineAtUtc,
-            ClaimedAmount = 0,
-            ApprovedAmount = 0,
-            RecoveredAmount = 0
+            CreatedAtUtc = DateTimeOffset.UtcNow
         };
 
         return Result<Claim>.Success(claim);
     }
 
     public Result<ClaimLossComponent> AddLossComponent(
-        LossComponentType componentType,
+        string componentType,
         string description,
         decimal? quantity,
         decimal? unitAmount,
@@ -95,6 +94,9 @@ public class Claim : IAuditableEntity, IHasConcurrencyStamp
         {
             return Result<ClaimLossComponent>.Failure(new DomainError("INVALID_STATE_TRANSITION", "Cannot modify loss components outside of draft or review states."));
         }
+
+        if (!ResolveOps.Domain.Claims.LossComponentType.All.Contains(componentType))
+            return Result<ClaimLossComponent>.Failure(new DomainError("INVALID_COMPONENT_TYPE", "Invalid loss component type."));
 
         if (amount.Currency != Currency)
         {
@@ -108,7 +110,6 @@ public class Claim : IAuditableEntity, IHasConcurrencyStamp
 
         var component = new ClaimLossComponent(
             Guid.NewGuid(),
-            TenantId,
             Id,
             componentType,
             description,
@@ -182,7 +183,7 @@ public class Claim : IAuditableEntity, IHasConcurrencyStamp
     }
 
     public void SetEligibility(
-        ClaimEligibilityStatus status,
+        string status,
         string[] reasonCodes,
         Guid? policyVersionId,
         DateTimeOffset? deadlineAtUtc)
@@ -228,7 +229,7 @@ public class Claim : IAuditableEntity, IHasConcurrencyStamp
             return Result.Failure(new DomainError("CLAIM_DEADLINE_EXPIRED", "The claim deadline has expired."));
         }
 
-        if (EligibilityStatus != ClaimEligibilityStatus.Eligible && EligibilityStatus != ClaimEligibilityStatus.ConditionallyEligible)
+        if (EligibilityStatus != ClaimEligibilityStatus.Eligible)
         {
             return Result.Failure(new DomainError("CLAIM_NOT_ELIGIBLE", "Claim is not eligible for review."));
         }

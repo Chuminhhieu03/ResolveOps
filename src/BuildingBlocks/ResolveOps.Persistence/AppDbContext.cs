@@ -273,8 +273,7 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
         builder.Entity<Claim>()
             .HasQueryFilter(c => _currentTenantId == null || c.TenantId == _currentTenantId);
 
-        builder.Entity<ClaimLossComponent>()
-            .HasQueryFilter(lc => _currentTenantId == null || lc.TenantId == _currentTenantId);
+
 
         // Messaging — OutboxMessage has nullable TenantId (system events have no tenant).
         // No global filter on OutboxMessage/InboxMessage/IdempotencyRecord — the publisher

@@ -12,7 +12,6 @@ public class ClaimLossComponentConfiguration : IEntityTypeConfiguration<ClaimLos
         builder.HasKey(c => c.Id);
 
         builder.Property(c => c.ComponentType)
-            .HasConversion<string>()
             .HasMaxLength(50);
 
         builder.Property(c => c.Description)

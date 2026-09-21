@@ -1,9 +1,19 @@
-namespace ResolveOps.Domain.Claims.Enums;
+using System.Collections.Generic;
 
-public enum ClaimType
+namespace ResolveOps.Domain.Claims;
+
+public static class ClaimType
 {
-    CargoDamage,
-    TotalLoss,
-    Shortage,
-    Delay
+    public const string CargoDamage = "CargoDamage";
+    public const string TotalLoss = "TotalLoss";
+    public const string Shortage = "Shortage";
+    public const string Delay = "Delay";
+
+    public static readonly IReadOnlyList<string> All =
+    [
+        CargoDamage,
+        TotalLoss,
+        Shortage,
+        Delay
+    ];
 }

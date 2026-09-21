@@ -1,10 +1,10 @@
 using System;
-using ResolveOps.Domain.Claims.Enums;
+using ResolveOps.Domain.Claims;
 
 namespace ResolveOps.Modules.Claims.Features.GetClaims;
 
 public record GetClaimsQuery(
     Guid? CaseId,
-    ClaimStatus? Status,
+    string? Status,
     int Page = 1,
     int PageSize = 20);

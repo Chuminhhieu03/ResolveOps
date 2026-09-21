@@ -1,15 +1,14 @@
 using System;
-using ResolveOps.Domain.Claims.Enums;
+
 using ResolveOps.Domain.Claims.ValueObjects;
 
 namespace ResolveOps.Domain.Claims;
 
-public class ClaimLossComponent
+public sealed class ClaimLossComponent
 {
     public Guid Id { get; private set; }
-    public Guid TenantId { get; private set; }
     public Guid ClaimId { get; private set; }
-    public LossComponentType ComponentType { get; private set; }
+    public string ComponentType { get; private set; } = string.Empty;
     public string Description { get; private set; } = string.Empty;
     public decimal? Quantity { get; private set; }
     public decimal? UnitAmount { get; private set; }
@@ -20,17 +19,18 @@ public class ClaimLossComponent
 
     internal ClaimLossComponent(
         Guid id,
-        Guid tenantId,
         Guid claimId,
-        LossComponentType componentType,
+        string componentType,
         string description,
         decimal? quantity,
         decimal? unitAmount,
         Money amount,
         Guid? sourceDocumentId)
     {
+        if (!LossComponentType.All.Contains(componentType))
+            throw new ArgumentException("Invalid component type", nameof(componentType));
+
         Id = id;
-        TenantId = tenantId;
         ClaimId = claimId;
         ComponentType = componentType;
         Description = description;

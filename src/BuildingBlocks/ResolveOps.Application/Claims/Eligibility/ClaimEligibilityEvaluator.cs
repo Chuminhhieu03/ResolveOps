@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using ResolveOps.Domain.Claims.Eligibility;
-using ResolveOps.Domain.Claims.Enums;
+using ResolveOps.Domain.Claims;
+
 using ResolveOps.Domain.Exceptions;
 using ResolveOps.Domain.Tenancy;
 
@@ -25,7 +26,7 @@ public class ClaimEligibilityEvaluator : IClaimEligibilityEvaluator
     public async Task<ClaimEligibilityResult> EvaluateAsync(
         ExceptionCase exceptionCase,
         Guid carrierId,
-        ClaimType claimType,
+        string claimType,
         CancellationToken cancellationToken = default)
     {
         var reasonCodes = new List<string>();
@@ -68,17 +69,17 @@ public class ClaimEligibilityEvaluator : IClaimEligibilityEvaluator
             Guid.NewGuid()); // Simulated policy version ID for MVP
     }
 
-    private static bool IsCompatible(string exceptionType, ClaimType claimType)
+    private static bool IsCompatible(string exceptionType, string claimType)
     {
         return (exceptionType, claimType) switch
         {
-            (ExceptionType.Damage, ClaimType.CargoDamage) => true,
-            (ExceptionType.Damage, ClaimType.TotalLoss) => true,
-            (ExceptionType.PartialDelivery, ClaimType.Shortage) => true,
-            (ExceptionType.PartialDelivery, ClaimType.TotalLoss) => true,
-            (ExceptionType.PickupDelay, ClaimType.Delay) => true,
-            (ExceptionType.InTransitDelay, ClaimType.Delay) => true,
-            (ExceptionType.Loss, ClaimType.TotalLoss) => true,
+            (ExceptionType.Damage, ResolveOps.Domain.Claims.ClaimType.CargoDamage) => true,
+            (ExceptionType.Damage, ResolveOps.Domain.Claims.ClaimType.TotalLoss) => true,
+            (ExceptionType.PartialDelivery, ResolveOps.Domain.Claims.ClaimType.Shortage) => true,
+            (ExceptionType.PartialDelivery, ResolveOps.Domain.Claims.ClaimType.TotalLoss) => true,
+            (ExceptionType.PickupDelay, ResolveOps.Domain.Claims.ClaimType.Delay) => true,
+            (ExceptionType.InTransitDelay, ResolveOps.Domain.Claims.ClaimType.Delay) => true,
+            (ExceptionType.Loss, ResolveOps.Domain.Claims.ClaimType.TotalLoss) => true,
             _ => false
         };
     }

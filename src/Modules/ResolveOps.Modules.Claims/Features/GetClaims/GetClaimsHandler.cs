@@ -23,10 +23,7 @@ public class GetClaimsHandler
         GetClaimsQuery query,
         CancellationToken cancellationToken)
     {
-        var tenantId = _tenantContext.TenantId.Value;
-
         var dbQuery = _dbContext.Set<Claim>()
-            .Where(c => c.TenantId == tenantId)
             .AsNoTracking();
 
         if (query.CaseId.HasValue)
@@ -34,9 +31,9 @@ public class GetClaimsHandler
             dbQuery = dbQuery.Where(c => c.CaseId == query.CaseId.Value);
         }
 
-        if (query.Status.HasValue)
+        if (!string.IsNullOrEmpty(query.Status))
         {
-            dbQuery = dbQuery.Where(c => c.Status == query.Status.Value);
+            dbQuery = dbQuery.Where(c => c.Status == query.Status);
         }
 
         var totalCount = await dbQuery.CountAsync(cancellationToken);

@@ -30,7 +30,7 @@ public class UpdateLossComponentHandler
 
         var claim = await _dbContext.Set<Claim>()
             .Include(c => c.LossComponents)
-            .FirstOrDefaultAsync(c => c.Id == command.ClaimId && c.TenantId == tenantId, cancellationToken);
+            .FirstOrDefaultAsync(c => c.Id == command.ClaimId, cancellationToken);
 
         if (claim == null)
         {

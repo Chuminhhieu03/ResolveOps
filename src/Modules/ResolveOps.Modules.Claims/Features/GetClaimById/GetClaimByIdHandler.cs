@@ -30,7 +30,7 @@ public class GetClaimByIdHandler
         var claim = await _dbContext.Set<Claim>()
             .Include(c => c.LossComponents)
             .AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Id == query.ClaimId && c.TenantId == tenantId, cancellationToken);
+            .FirstOrDefaultAsync(c => c.Id == query.ClaimId, cancellationToken);
 
         if (claim == null)
         {

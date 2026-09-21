@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
-using ResolveOps.Domain.Claims.Enums;
+using ResolveOps.Domain.Claims;
 
 namespace ResolveOps.Modules.Claims.Features.GetClaims;
 
@@ -13,7 +13,7 @@ public static class GetClaimsEndpoint
     {
         app.MapGet("/api/claims", async (
             [FromQuery] Guid? caseId,
-            [FromQuery] ClaimStatus? status,
+            [FromQuery] string? status,
             [FromQuery] int page,
             [FromQuery] int pageSize,
             [FromServices] GetClaimsHandler handler,

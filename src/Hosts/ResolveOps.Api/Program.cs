@@ -14,6 +14,7 @@ using ResolveOps.Modules.Shipments;
 using ResolveOps.Modules.Tenancy;
 using ResolveOps.Modules.Tracking;
 using ResolveOps.Modules.Workflow;
+using ResolveOps.Modules.Claims;
 using ResolveOps.Persistence;
 using ResolveOps.Security;
 using ResolveOps.ServiceDefaults;
@@ -99,6 +100,7 @@ builder.Services.AddTrackingModule();
 builder.Services.AddExceptionsModule();
 builder.Services.AddWorkflowModule();
 builder.Services.AddDocumentsModule(builder.Configuration);
+builder.Services.AddClaimsModule();
 
 builder.Services.AddScoped<ResolveOps.Application.IErrorMessageProvider, ResolveOps.Persistence.Services.DatabaseErrorMessageProvider>();
 builder.Services.AddScoped<ResolveOps.Application.Idempotency.IIdempotencyStore, ResolveOps.Persistence.Services.EfCoreIdempotencyStore>();
@@ -140,8 +142,8 @@ if (app.Environment.IsDevelopment())
 app.MapGet("/api/version", () => new
 {
     Product = "ResolveOps",
-    Phase = "9",
-    Description = "Evidence and secure document pipeline",
+    Phase = "10",
+    Description = "Claim eligibility and draft claims",
     BuildTimestamp = DateTime.UtcNow.ToString("O"),
 })
 .WithName("GetVersion")
@@ -157,6 +159,7 @@ app.MapTrackingEndpoints();
 app.MapExceptionsEndpoints();
 app.MapWorkflowEndpoints();
 app.MapDocumentsEndpoints();
+app.MapClaimsEndpoints();
 
 // ─────────────────────────────────────────────────────────────────────────
 
