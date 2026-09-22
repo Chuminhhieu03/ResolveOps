@@ -9,6 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Phase 13 (Notifications and realtime operations)**:
+  - Added Notification domain entities in `ResolveOps.Domain.Notifications`: `Notification`, `NotificationPreference`, `NotificationTemplate`, `NotificationDelivery`.
+  - Added domain constants: `NotificationChannel` (`InApp`, `Email`, `All`), `NotificationClass` (`SlaBreachAlert`, `ExceptionEscalation`, `TaskAssigned`, `ClaimReviewRequested`, `ClaimDecisionReceived`, `ClaimRecoveryRecorded`, `Mandatory`), `DeliveryStatus` (`Pending`, `Sent`, `Failed`, `Retrying`, `All`).
+  - Enforced mandatory notification preference rules: users cannot disable critical operational alerts (`SlaBreachAlert`, `ExceptionEscalation`, `ClaimReviewRequested`).
+  - Added `IEmailSender` abstraction, `EmailMessage`, `EmailSendResult`, and `INotificationRealtimeService` in `ResolveOps.Application.Notifications`.
+  - Implemented `SmtpEmailSender` in `ResolveOps.Modules.Notifications.Services` connecting to Mailpit on `localhost:1025` for local development and authenticated SMTP for production.
+  - Implemented SignalR `NotificationHub` at `/hubs/notifications` supporting query-string JWT token auth (`?access_token=...`) for WebSocket upgrades, auto-joining `user_{userId}` and `tenant_{tenantId}` groups.
+  - Implemented `SignalRNotificationRealtimeService` for targeted user pushes and tenant-wide operational broadcasts.
+  - Enforced Edge Cases 13 & 14 and Rule 10: unique constraint `uix_notification_deliveries_tenant_idempotency` on `(tenant_id, idempotency_key)` preventing duplicate dispatches on worker crash/redelivery; external SMTP sends executed strictly outside open database transactions.
+  - Added EF Core configurations: `NotificationConfiguration`, `NotificationPreferenceConfiguration`, `NotificationTemplateConfiguration`, `NotificationDeliveryConfiguration` with global tenant query filters in `AppDbContext`.
+  - Generated EF Core migration `20260922160422_AddNotificationsAndRealtimeOperations`.
+  - Implemented 5 vertical slice Minimal API features in `ResolveOps.Modules.Notifications` (adhering strictly to 1-class-per-file convention):
+    - `GET /api/v1/notifications`
+    - `POST /api/v1/notifications/{id:guid}/read`
+    - `POST /api/v1/notifications/read-all`
+    - `GET /api/v1/notifications/preferences`
+    - `PUT /api/v1/notifications/preferences`
+  - Implemented `NotificationConsumerService` background worker in `ResolveOps.Worker.Consumers` subscribing to RabbitMQ integration events (`CaseSlaBreachedV1`, `ExceptionDetectedV1`, `ClaimDecisionRecordedV1`, `ClaimRecoveryRecordedV1`, `ClaimSubmittedV1`) with transactional inbox deduplication.
+  - Instrumented OpenTelemetry metrics in `ResolveOps.Observability.NotificationMetrics`: `notifications.sent.total`, `notifications.failures.total`, `notifications.email.duration.seconds`, `notifications.realtime.active_connections`.
+  - Created ADR-030 (`docs/adr/ADR-030-notifications-and-realtime-operations.md`).
+
 - **Phase 12 (Financial recovery and settlement)**:
   - Added `RecoveryTransaction` domain entity in `ResolveOps.Domain.Claims` implementing `IAuditableEntity`.
   - Added domain constants: `RecoveryTransactionType` (`Payment`, `CreditNote`, `Adjustment`), `WriteOffReasonCodes` (`CarrierInsolvent`, `DisputedUnrecoverable`, `DeMinimisBalance`, `CommercialSettlement`, `Other`).

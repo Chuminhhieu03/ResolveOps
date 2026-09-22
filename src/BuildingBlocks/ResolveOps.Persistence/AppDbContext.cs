@@ -8,6 +8,7 @@ using ResolveOps.Domain.Documents;
 using ResolveOps.Domain.Exceptions;
 using ResolveOps.Domain.Identity;
 using ResolveOps.Domain.Messaging;
+using ResolveOps.Domain.Notifications;
 using ResolveOps.Domain.Partners;
 using ResolveOps.Domain.Shipments;
 using ResolveOps.Domain.Tenancy;
@@ -104,6 +105,12 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
     public DbSet<ClaimApproval> ClaimApprovals => Set<ClaimApproval>();
     public DbSet<CarrierClaimResponse> CarrierClaimResponses => Set<CarrierClaimResponse>();
     public DbSet<RecoveryTransaction> RecoveryTransactions => Set<RecoveryTransaction>();
+
+    // ── Notifications (Phase 13) ──────────────────────────────────────────────
+    public DbSet<NotificationTemplate> NotificationTemplates => Set<NotificationTemplate>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
+    public DbSet<NotificationDelivery> NotificationDeliveries => Set<NotificationDelivery>();
 
     // ── Messaging (Phase 5) ───────────────────────────────────────────────────
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
@@ -284,6 +291,19 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
 
         builder.Entity<RecoveryTransaction>()
             .HasQueryFilter(t => _currentTenantId == null || t.TenantId == _currentTenantId);
+
+        // Notifications — tenant-scoped (Phase 13)
+        builder.Entity<NotificationTemplate>()
+            .HasQueryFilter(t => _currentTenantId == null || t.TenantId == null || t.TenantId == _currentTenantId);
+
+        builder.Entity<Notification>()
+            .HasQueryFilter(n => _currentTenantId == null || n.TenantId == _currentTenantId);
+
+        builder.Entity<NotificationPreference>()
+            .HasQueryFilter(p => _currentTenantId == null || p.TenantId == _currentTenantId);
+
+        builder.Entity<NotificationDelivery>()
+            .HasQueryFilter(d => _currentTenantId == null || d.TenantId == _currentTenantId);
 
 
 

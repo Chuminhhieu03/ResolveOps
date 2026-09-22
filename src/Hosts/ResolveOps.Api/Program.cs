@@ -10,6 +10,7 @@ using ResolveOps.Modules.Documents;
 using ResolveOps.Modules.Exceptions;
 using ResolveOps.Modules.Identity;
 using ResolveOps.Modules.Integrations;
+using ResolveOps.Modules.Notifications;
 using ResolveOps.Modules.Partners;
 using ResolveOps.Modules.Shipments;
 using ResolveOps.Modules.Tenancy;
@@ -78,6 +79,19 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtSettings["Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
     };
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+            {
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
+    };
 });
 
 builder.Services.AddAuthorization(options =>
@@ -101,6 +115,7 @@ builder.Services.AddExceptionsModule();
 builder.Services.AddWorkflowModule();
 builder.Services.AddDocumentsModule(builder.Configuration);
 builder.Services.AddClaimsModule();
+builder.Services.AddNotificationsModule(builder.Configuration);
 
 builder.Services.AddScoped<ResolveOps.Application.IErrorMessageProvider, ResolveOps.Persistence.Services.DatabaseErrorMessageProvider>();
 builder.Services.AddScoped<ResolveOps.Application.Idempotency.IIdempotencyStore, ResolveOps.Persistence.Services.EfCoreIdempotencyStore>();
@@ -142,8 +157,8 @@ if (app.Environment.IsDevelopment())
 app.MapGet("/api/version", () => new
 {
     Product = "ResolveOps",
-    Phase = "11",
-    Description = "Claim approval, submission, response, appeal",
+    Phase = "13",
+    Description = "Notifications and realtime operations",
     BuildTimestamp = DateTime.UtcNow.ToString("O"),
 })
 .WithName("GetVersion")
@@ -160,6 +175,7 @@ app.MapExceptionsEndpoints();
 app.MapWorkflowEndpoints();
 app.MapDocumentsEndpoints();
 app.MapClaimsEndpoints();
+app.MapNotificationsEndpoints();
 
 // ─────────────────────────────────────────────────────────────────────────
 

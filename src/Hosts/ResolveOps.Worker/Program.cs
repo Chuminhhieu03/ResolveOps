@@ -3,6 +3,7 @@ using RabbitMQ.Client;
 using ResolveOps.Messaging;
 using ResolveOps.Modules.Documents;
 using ResolveOps.Modules.Exceptions;
+using ResolveOps.Modules.Notifications;
 using ResolveOps.Modules.Workflow;
 using ResolveOps.Persistence;
 using ResolveOps.ServiceDefaults;
@@ -55,13 +56,15 @@ builder.Services.Configure<ResolveOps.Messaging.Options.RabbitMqConsumerOptions>
 builder.Services.AddExceptionsModule();
 builder.Services.AddWorkflowModule();
 builder.Services.AddDocumentsModule(builder.Configuration);
+builder.Services.AddNotificationsModule(builder.Configuration);
 
-// ── Messaging & Background Consumers (Phase 5, 6 & 7) ──────────────────────────────────
+// ── Messaging & Background Consumers (Phase 5, 6, 7 & 13) ──────────────────────────────────
 builder.Services.AddScoped<IOutboxWriter, OutboxWriter>();
 builder.Services.AddSingleton<RabbitMqPublisher>();
 builder.Services.AddHostedService<OutboxPublisherService>();
 builder.Services.AddHostedService<ResolveOps.Worker.Consumers.TrackingIngestionConsumerService>();
 builder.Services.AddHostedService<ResolveOps.Worker.Consumers.ExceptionEvaluationConsumerService>();
+builder.Services.AddHostedService<ResolveOps.Worker.Consumers.NotificationConsumerService>();
 
 // ── Quartz.NET Scheduled Jobs (Phase 7, 8, 9 / spec §18.2, §24) ──────────────────────
 builder.Services.AddQuartz(q =>
