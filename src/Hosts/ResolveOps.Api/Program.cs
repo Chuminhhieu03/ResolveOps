@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using ResolveOps.Api;
 using ResolveOps.Api.Infrastructure;
 using ResolveOps.Domain.Identity;
+using ResolveOps.Modules.Claims;
 using ResolveOps.Modules.Documents;
 using ResolveOps.Modules.Exceptions;
 using ResolveOps.Modules.Identity;
@@ -14,7 +15,6 @@ using ResolveOps.Modules.Shipments;
 using ResolveOps.Modules.Tenancy;
 using ResolveOps.Modules.Tracking;
 using ResolveOps.Modules.Workflow;
-using ResolveOps.Modules.Claims;
 using ResolveOps.Persistence;
 using ResolveOps.Security;
 using ResolveOps.ServiceDefaults;
@@ -142,8 +142,8 @@ if (app.Environment.IsDevelopment())
 app.MapGet("/api/version", () => new
 {
     Product = "ResolveOps",
-    Phase = "10",
-    Description = "Claim eligibility and draft claims",
+    Phase = "11",
+    Description = "Claim approval, submission, response, appeal",
     BuildTimestamp = DateTime.UtcNow.ToString("O"),
 })
 .WithName("GetVersion")

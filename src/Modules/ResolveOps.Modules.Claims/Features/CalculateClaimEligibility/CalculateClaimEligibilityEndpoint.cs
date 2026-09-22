@@ -1,16 +1,18 @@
 using System;
+using System.Threading;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using ResolveOps.Application;
 
 namespace ResolveOps.Modules.Claims.Features.CalculateClaimEligibility;
 
-public static class CalculateClaimEligibilityEndpoint
+public sealed class CalculateClaimEligibilityEndpoint : IEndpoint
 {
-    public static void MapEndpoint(IEndpointRouteBuilder app)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/claims/{claimId}/calculate-eligibility", async (
+        app.MapPost("/api/claims/{claimId:guid}/calculate-eligibility", async (
             [FromRoute] Guid claimId,
             [FromServices] CalculateClaimEligibilityHandler handler,
             CancellationToken cancellationToken) =>

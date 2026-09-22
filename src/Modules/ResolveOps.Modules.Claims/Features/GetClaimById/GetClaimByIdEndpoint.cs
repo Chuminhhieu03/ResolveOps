@@ -1,16 +1,18 @@
 using System;
+using System.Threading;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using ResolveOps.Application;
 
 namespace ResolveOps.Modules.Claims.Features.GetClaimById;
 
-public static class GetClaimByIdEndpoint
+public sealed class GetClaimByIdEndpoint : IEndpoint
 {
-    public static void MapEndpoint(IEndpointRouteBuilder app)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/claims/{claimId}", async (
+        app.MapGet("/api/claims/{claimId:guid}", async (
             [FromRoute] Guid claimId,
             [FromServices] GetClaimByIdHandler handler,
             CancellationToken cancellationToken) =>

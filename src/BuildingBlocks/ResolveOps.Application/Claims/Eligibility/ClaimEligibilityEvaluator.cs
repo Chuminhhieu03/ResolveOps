@@ -2,9 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using ResolveOps.Domain.Claims.Eligibility;
 using ResolveOps.Domain.Claims;
-
+using ResolveOps.Domain.Claims.Eligibility;
 using ResolveOps.Domain.Exceptions;
 using ResolveOps.Domain.Tenancy;
 

@@ -1,16 +1,18 @@
 using System;
+using System.Threading;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using ResolveOps.Application;
 
 namespace ResolveOps.Modules.Claims.Features.GetClaimReadiness;
 
-public static class GetClaimReadinessEndpoint
+public sealed class GetClaimReadinessEndpoint : IEndpoint
 {
-    public static void MapEndpoint(IEndpointRouteBuilder app)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/claims/{claimId}/readiness", async (
+        app.MapGet("/api/claims/{claimId:guid}/readiness", async (
             [FromRoute] Guid claimId,
             [FromServices] GetClaimReadinessHandler handler,
             CancellationToken cancellationToken) =>

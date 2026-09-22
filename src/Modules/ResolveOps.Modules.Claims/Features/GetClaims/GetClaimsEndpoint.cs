@@ -1,15 +1,16 @@
 using System;
+using System.Threading;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
-using ResolveOps.Domain.Claims;
+using ResolveOps.Application;
 
 namespace ResolveOps.Modules.Claims.Features.GetClaims;
 
-public static class GetClaimsEndpoint
+public sealed class GetClaimsEndpoint : IEndpoint
 {
-    public static void MapEndpoint(IEndpointRouteBuilder app)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
         app.MapGet("/api/claims", async (
             [FromQuery] Guid? caseId,

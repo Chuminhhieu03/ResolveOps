@@ -175,6 +175,80 @@ namespace ResolveOps.Persistence.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("ResolveOps.Domain.Claims.CarrierClaimResponse", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
+
+                    b.Property<decimal?>("ApprovedAmount")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(19,4)")
+                        .HasColumnName("approved_amount");
+
+                    b.Property<string>("CarrierReference")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)")
+                        .HasColumnName("carrier_reference");
+
+                    b.Property<Guid>("ClaimId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("claim_id");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("Currency")
+                        .HasMaxLength(3)
+                        .HasColumnType("nchar(3)")
+                        .HasColumnName("currency")
+                        .IsFixedLength();
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("notes");
+
+                    b.Property<string>("ReasonCodes")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("reason_codes");
+
+                    b.Property<Guid>("RecordedBy")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("recorded_by");
+
+                    b.Property<DateTimeOffset>("ResponseAtUtc")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("response_at_utc");
+
+                    b.Property<string>("ResponseType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("response_type");
+
+                    b.Property<string>("SourceChannel")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)")
+                        .HasColumnName("source_channel");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClaimId");
+
+                    b.HasIndex("TenantId", "ClaimId")
+                        .HasDatabaseName("ix_carrier_claim_responses_tenant_claim");
+
+                    b.ToTable("carrier_claim_responses", (string)null);
+                });
+
             modelBuilder.Entity("ResolveOps.Domain.Claims.Claim", b =>
                 {
                     b.Property<Guid>("Id")
@@ -304,12 +378,80 @@ namespace ResolveOps.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("uix_claims_claim_number");
 
+                    b.HasIndex("TenantId", "CarrierId", "ExternalSubmissionReference")
+                        .IsUnique()
+                        .HasDatabaseName("uix_claims_carrier_submission_ref")
+                        .HasFilter("external_submission_reference IS NOT NULL");
+
                     b.HasIndex("TenantId", "CaseId", "CarrierId")
                         .IsUnique()
                         .HasDatabaseName("uix_claims_active_case_carrier")
                         .HasFilter("status NOT IN ('Cancelled', 'Closed')");
 
                     b.ToTable("claims", (string)null);
+                });
+
+            modelBuilder.Entity("ResolveOps.Domain.Claims.ClaimApproval", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ApprovalType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasColumnName("approval_type");
+
+                    b.Property<Guid>("ClaimId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("claim_id");
+
+                    b.Property<string>("ClaimVersion")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("claim_version");
+
+                    b.Property<DateTimeOffset?>("DecidedAtUtc")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("decided_at_utc");
+
+                    b.Property<Guid?>("DecidedBy")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("decided_by");
+
+                    b.Property<string>("DecisionNote")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("decision_note");
+
+                    b.Property<DateTimeOffset>("RequestedAtUtc")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("requested_at_utc");
+
+                    b.Property<Guid>("RequestedBy")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("requested_by");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClaimId");
+
+                    b.HasIndex("TenantId", "ClaimId")
+                        .HasDatabaseName("ix_claim_approvals_tenant_claim");
+
+                    b.ToTable("claim_approvals", (string)null);
                 });
 
             modelBuilder.Entity("ResolveOps.Domain.Claims.ClaimLossComponent", b =>
@@ -343,10 +485,6 @@ namespace ResolveOps.Persistence.Migrations
                     b.Property<Guid?>("SourceDocumentId")
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("source_document_id");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("tenant_id");
 
                     b.Property<decimal?>("UnitAmount")
                         .HasPrecision(19, 4)
@@ -2722,6 +2860,24 @@ namespace ResolveOps.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("ResolveOps.Domain.Claims.CarrierClaimResponse", b =>
+                {
+                    b.HasOne("ResolveOps.Domain.Claims.Claim", null)
+                        .WithMany("Responses")
+                        .HasForeignKey("ClaimId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ResolveOps.Domain.Claims.ClaimApproval", b =>
+                {
+                    b.HasOne("ResolveOps.Domain.Claims.Claim", null)
+                        .WithMany("Approvals")
+                        .HasForeignKey("ClaimId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("ResolveOps.Domain.Claims.ClaimLossComponent", b =>
                 {
                     b.HasOne("ResolveOps.Domain.Claims.Claim", null)
@@ -2823,7 +2979,11 @@ namespace ResolveOps.Persistence.Migrations
 
             modelBuilder.Entity("ResolveOps.Domain.Claims.Claim", b =>
                 {
+                    b.Navigation("Approvals");
+
                     b.Navigation("LossComponents");
+
+                    b.Navigation("Responses");
                 });
 
             modelBuilder.Entity("ResolveOps.Domain.Exceptions.ExceptionCase", b =>

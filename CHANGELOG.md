@@ -9,7 +9,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+- **Phase 11 (Claim approval, submission, response, appeal)**:
+  - Added `ClaimApproval` and `CarrierClaimResponse` domain entities in `ResolveOps.Domain.Claims`.
+  - Added domain constants: `ApprovalStatus`, `ApprovalType`, `CarrierResponseType`, `SourceChannel`.
+  - Extended `Claim` aggregate root with guarded domain methods: `RequestReview`, `ApproveForSubmission`, `ReturnToDraft`, `RecordSubmission`, `RecordAcknowledgement`, `RecordInformationRequest`, `SupplyAdditionalInformation`, `RecordDecision`, `Appeal`, and `Cancel`.
+  - Enforced Separation of Duties (§26.10): Preparers cannot approve their own claims exceeding tenant high-value threshold (default 10,000,000 VND).
+  - Enforced Partial Approval reconciliation (§26.11): Automatically retains denied difference (`ClaimedAmount - ApprovedAmount`).
+  - Added outbox integration events `ClaimSubmittedV1` and `ClaimDecisionRecordedV1` in `ResolveOps.Messaging.Events`.
+  - Added EF Core configurations `ClaimApprovalConfiguration`, `CarrierClaimResponseConfiguration`, and unique partial index on `(tenant_id, carrier_id, external_submission_reference)` in `ClaimConfiguration`.
+  - Added `DbSet<ClaimApproval>` and `DbSet<CarrierClaimResponse>` with global tenant filters in `AppDbContext`.
+  - Generated EF Core migration `20260921163055_AddClaimApprovalSubmissionAndResponses`.
+  - Implemented 12 vertical slice Minimal API endpoints adhering to 1-class-per-file and `IEndpoint` in `ResolveOps.Modules.Claims`:
+    - `POST /api/claims/{claimId}/request-review`
+    - `POST /api/claims/{claimId}/approve-for-submission`
+    - `POST /api/claims/{claimId}/return-to-draft`
+    - `POST /api/claims/{claimId}/record-submission`
+    - `GET /api/claims/{claimId}/submission-package` (includes presigned download URLs for verified clean evidence documents)
+    - `POST /api/claims/{claimId}/record-acknowledgement`
+    - `POST /api/claims/{claimId}/record-information-request`
+    - `POST /api/claims/{claimId}/supply-additional-information`
+    - `POST /api/claims/{claimId}/record-decision`
+    - `POST /api/claims/{claimId}/appeal`
+    - `GET /api/claims/{claimId}/timeline` (unified chronological lifecycle timeline)
+    - `POST /api/claims/{claimId}/cancel`
+  - Refactored Phase 10 endpoints to implement `IEndpoint` and extract request records into separate files.
+  - Implemented `ClaimFollowUpScanJob` Quartz.NET periodic job in `ResolveOps.Worker`, scanning for SLA follow-up deadlines and generating operational tasks idempotently.
+  - Instrumented OpenTelemetry metrics in `ResolveOps.Observability`: `claims.approved.total`, `claims.submitted.total`, `claims.decisions.recorded.total`, `claims.appealed.total`, `claims.amount.approved.total`.
+  - Created ADR-028 (`docs/adr/ADR-028-claim-approval-submission-and-response.md`).
+
+- **Phase 10 (Claim eligibility and draft claims)**:
+  - Added `Claim` aggregate root and `ClaimLossComponent` entity in `ResolveOps.Domain.Claims`.
+  - Added `ClaimEligibilityEvaluator` and `ClaimReadinessEvaluator` in `ResolveOps.Application`.
+  - Implemented endpoints for creating draft claims, managing loss components, calculating eligibility, and evaluating readiness.
+  - Generated EF Core migration `20260919161858_AddClaimsAndEligibilityEngine`.
+  - Added OpenTelemetry metrics (`claims.drafted.total`, `claims.eligibility.evaluated.total`, `claims.amount.claimed.total`) in `ResolveOps.Observability`.
+
 - **Phase 9 (Evidence and secure document pipeline)**:
   - Added `EvidenceDocument` aggregate and `EvidenceRequirement` domain entities in `ResolveOps.Domain.Documents`.
   - Added `EvidenceType` (`DeliveryReceiptProof`, `PhotosOfDamageProof`, `CommercialInvoiceProof`, `PackingListProof`, `CarrierInspectionReport`, `WeightCertificate`, `CustomsDocumentation`, `CustomerAffidavit`, `WrittenDenialOrCorrespondence`, `PoliceReport`, `Other`), `DocumentStatus` (`PendingUpload`, `PendingScan`, `Available`, `RejectedScanFailed`, `Superseded`, `Archived`), and `DocumentScanStatus` (`NotScanned`, `Clean`, `Infected`, `ScanFailed`, `Exempt`).

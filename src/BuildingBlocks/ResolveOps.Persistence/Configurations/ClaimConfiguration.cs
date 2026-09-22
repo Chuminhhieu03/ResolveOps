@@ -51,6 +51,16 @@ public class ClaimConfiguration : IEntityTypeConfiguration<Claim>
             .HasForeignKey(lc => lc.ClaimId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        builder.HasMany(c => c.Approvals)
+            .WithOne()
+            .HasForeignKey(a => a.ClaimId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(c => c.Responses)
+            .WithOne()
+            .HasForeignKey(r => r.ClaimId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         // Unique index: (tenant_id, claim_number)
         builder.HasIndex(c => new { c.TenantId, c.ClaimNumber })
             .IsUnique()
@@ -61,5 +71,11 @@ public class ClaimConfiguration : IEntityTypeConfiguration<Claim>
             .IsUnique()
             .HasFilter("status NOT IN ('Cancelled', 'Closed')")
             .HasDatabaseName("uix_claims_active_case_carrier");
+
+        // Unique index on external submission reference per carrier (spec §10.5 Invariant 10)
+        builder.HasIndex(c => new { c.TenantId, c.CarrierId, c.ExternalSubmissionReference })
+            .IsUnique()
+            .HasFilter("external_submission_reference IS NOT NULL")
+            .HasDatabaseName("uix_claims_carrier_submission_ref");
     }
 }

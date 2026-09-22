@@ -1,16 +1,18 @@
+using System;
+using System.Threading;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
-using ResolveOps.Domain;
+using ResolveOps.Application;
 
 namespace ResolveOps.Modules.Claims.Features.CreateDraftClaim;
 
-public static class CreateDraftClaimEndpoint
+public sealed class CreateDraftClaimEndpoint : IEndpoint
 {
-    public static void MapEndpoint(IEndpointRouteBuilder app)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/exceptions/{caseId}/claims", async (
+        app.MapPost("/api/exceptions/{caseId:guid}/claims", async (
             [FromRoute] Guid caseId,
             [FromBody] CreateDraftClaimRequest request,
             [FromServices] CreateDraftClaimHandler handler,
@@ -34,8 +36,3 @@ public static class CreateDraftClaimEndpoint
         .WithTags("Claims");
     }
 }
-
-public record CreateDraftClaimRequest(
-    Guid CarrierId,
-    string ClaimType,
-    string Currency);

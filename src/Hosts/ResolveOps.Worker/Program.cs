@@ -103,6 +103,16 @@ builder.Services.AddQuartz(q =>
         .WithSimpleSchedule(x => x
             .WithIntervalInHours(6)
             .RepeatForever()));
+
+    // Phase 11: Claim follow-up & deadline scan (runs every 15 minutes)
+    var claimFollowUpJobKey = new JobKey("ClaimFollowUpScanJob");
+    q.AddJob<ClaimFollowUpScanJob>(opts => opts.WithIdentity(claimFollowUpJobKey));
+    q.AddTrigger(opts => opts
+        .ForJob(claimFollowUpJobKey)
+        .WithIdentity("ClaimFollowUpScanTrigger")
+        .WithSimpleSchedule(x => x
+            .WithIntervalInMinutes(15)
+            .RepeatForever()));
 });
 builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
 

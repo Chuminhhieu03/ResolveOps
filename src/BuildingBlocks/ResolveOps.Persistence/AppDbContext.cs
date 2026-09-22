@@ -98,9 +98,11 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
     public DbSet<EvidenceDocument> EvidenceDocuments => Set<EvidenceDocument>();
     public DbSet<EvidenceRequirement> EvidenceRequirements => Set<EvidenceRequirement>();
 
-    // ── Claims (Phase 10) ─────────────────────────────────────────────────────
+    // ── Claims (Phase 10 & 11) ────────────────────────────────────────────────
     public DbSet<Claim> Claims => Set<Claim>();
     public DbSet<ClaimLossComponent> ClaimLossComponents => Set<ClaimLossComponent>();
+    public DbSet<ClaimApproval> ClaimApprovals => Set<ClaimApproval>();
+    public DbSet<CarrierClaimResponse> CarrierClaimResponses => Set<CarrierClaimResponse>();
 
     // ── Messaging (Phase 5) ───────────────────────────────────────────────────
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
@@ -269,9 +271,15 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
         builder.Entity<EvidenceRequirement>()
             .HasQueryFilter(r => _currentTenantId == null || r.TenantId == _currentTenantId);
 
-        // Claims — all entities are tenant-scoped (Phase 10)
+        // Claims — all entities are tenant-scoped (Phase 10 & 11)
         builder.Entity<Claim>()
             .HasQueryFilter(c => _currentTenantId == null || c.TenantId == _currentTenantId);
+
+        builder.Entity<ClaimApproval>()
+            .HasQueryFilter(a => _currentTenantId == null || a.TenantId == _currentTenantId);
+
+        builder.Entity<CarrierClaimResponse>()
+            .HasQueryFilter(r => _currentTenantId == null || r.TenantId == _currentTenantId);
 
 
 

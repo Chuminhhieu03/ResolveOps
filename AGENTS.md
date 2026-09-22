@@ -20,10 +20,10 @@ and adds current phase status. When in conflict, the spec wins.
 
 | Field | Value |
 |---|---|
-| **Current phase** | Phase 10 — Claim eligibility and draft claims |
+| **Current phase** | Phase 11 — Claim approval, submission, response, appeal |
 | **Phase status** | ✅ Complete |
-| **Next phase** | Phase 11 — Claim approval, submission, response, appeal |
-| **Last updated** | 2026-09-19 |
+| **Next phase** | Phase 12 — Financial recovery and settlement |
+| **Last updated** | 2026-09-21 |
 
 ### Phase 0 deliverables completed
 
@@ -158,8 +158,8 @@ The agent MUST NOT:
 | 7 | Exception policy engine and case creation | ✅ Complete |
 | 8 | Exception case workflow, tasks, SLA | ✅ Complete |
 | 9 | Evidence and secure document pipeline | ✅ Complete |
-| 10 | Claim eligibility and draft claims | ⬜ Not started |
-| 11 | Claim approval, submission, response, appeal | ⬜ Not started |
+| 10 | Claim eligibility and draft claims | ✅ Complete |
+| 11 | Claim approval, submission, response, appeal | ✅ Complete |
 | 12 | Financial recovery and settlement | ⬜ Not started |
 | 13 | Notifications and realtime operations | ⬜ Not started |
 | 14 | Reporting and carrier scorecards | ⬜ Not started |

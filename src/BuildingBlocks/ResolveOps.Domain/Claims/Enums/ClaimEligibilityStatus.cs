@@ -6,12 +6,14 @@ public static class ClaimEligibilityStatus
 {
     public const string Pending = "Pending";
     public const string Eligible = "Eligible";
+    public const string ConditionallyEligible = "ConditionallyEligible";
     public const string NotEligible = "NotEligible";
 
     public static readonly IReadOnlyList<string> All =
     [
         Pending,
         Eligible,
+        ConditionallyEligible,
         NotEligible
     ];
 }

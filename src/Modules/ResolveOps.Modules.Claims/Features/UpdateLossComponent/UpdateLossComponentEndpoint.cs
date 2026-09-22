@@ -4,14 +4,15 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using ResolveOps.Application;
 
 namespace ResolveOps.Modules.Claims.Features.UpdateLossComponent;
 
-public static class UpdateLossComponentEndpoint
+public sealed class UpdateLossComponentEndpoint : IEndpoint
 {
-    public static void MapEndpoint(IEndpointRouteBuilder app)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapPut("/api/claims/{claimId}/loss-components/{componentId}", async (
+        app.MapPut("/api/claims/{claimId:guid}/loss-components/{componentId:guid}", async (
             [FromRoute] Guid claimId,
             [FromRoute] Guid componentId,
             [FromBody] UpdateLossComponentRequest request,
@@ -41,11 +42,3 @@ public static class UpdateLossComponentEndpoint
         .WithTags("Claims");
     }
 }
-
-public record UpdateLossComponentRequest(
-    string Description,
-    decimal? Quantity,
-    decimal? UnitAmount,
-    decimal Amount,
-    string Currency,
-    Guid? SourceDocumentId);

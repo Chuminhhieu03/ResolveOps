@@ -1,16 +1,18 @@
 using System;
+using System.Threading;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using ResolveOps.Application;
 
 namespace ResolveOps.Modules.Claims.Features.AddLossComponent;
 
-public static class AddLossComponentEndpoint
+public sealed class AddLossComponentEndpoint : IEndpoint
 {
-    public static void MapEndpoint(IEndpointRouteBuilder app)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/claims/{claimId}/loss-components", async (
+        app.MapPost("/api/claims/{claimId:guid}/loss-components", async (
             [FromRoute] Guid claimId,
             [FromBody] AddLossComponentRequest request,
             [FromServices] AddLossComponentHandler handler,
@@ -40,12 +42,3 @@ public static class AddLossComponentEndpoint
         .WithTags("Claims");
     }
 }
-
-public record AddLossComponentRequest(
-    string ComponentType,
-    string Description,
-    decimal? Quantity,
-    decimal? UnitAmount,
-    decimal Amount,
-    string Currency,
-    Guid? SourceDocumentId);

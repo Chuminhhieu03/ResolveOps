@@ -4,14 +4,15 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using ResolveOps.Application;
 
 namespace ResolveOps.Modules.Claims.Features.RemoveLossComponent;
 
-public static class RemoveLossComponentEndpoint
+public sealed class RemoveLossComponentEndpoint : IEndpoint
 {
-    public static void MapEndpoint(IEndpointRouteBuilder app)
+    public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapDelete("/api/claims/{claimId}/loss-components/{componentId}", async (
+        app.MapDelete("/api/claims/{claimId:guid}/loss-components/{componentId:guid}", async (
             [FromRoute] Guid claimId,
             [FromRoute] Guid componentId,
             [FromServices] RemoveLossComponentHandler handler,
