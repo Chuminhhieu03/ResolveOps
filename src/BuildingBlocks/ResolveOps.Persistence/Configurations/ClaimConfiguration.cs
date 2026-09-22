@@ -38,9 +38,13 @@ public class ClaimConfiguration : IEntityTypeConfiguration<Claim>
         builder.Property(c => c.ClaimedAmount).HasPrecision(19, 4);
         builder.Property(c => c.ApprovedAmount).HasPrecision(19, 4);
         builder.Property(c => c.RecoveredAmount).HasPrecision(19, 4);
+        builder.Property(c => c.WrittenOffAmount).HasPrecision(19, 4);
 
         builder.Property(c => c.ExternalSubmissionReference)
             .HasMaxLength(100);
+
+        builder.Property(c => c.WriteOffReason).HasMaxLength(200);
+        builder.Property(c => c.ClosingNotes).HasMaxLength(1000);
 
         builder.Property(c => c.CreatedBy).HasMaxLength(100);
         builder.Property(c => c.UpdatedBy).HasMaxLength(100);
@@ -59,6 +63,11 @@ public class ClaimConfiguration : IEntityTypeConfiguration<Claim>
         builder.HasMany(c => c.Responses)
             .WithOne()
             .HasForeignKey(r => r.ClaimId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(c => c.RecoveryTransactions)
+            .WithOne()
+            .HasForeignKey(t => t.ClaimId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // Unique index: (tenant_id, claim_number)

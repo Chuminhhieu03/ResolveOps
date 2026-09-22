@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Phase 12 (Financial recovery and settlement)**:
+  - Added `RecoveryTransaction` domain entity in `ResolveOps.Domain.Claims` implementing `IAuditableEntity`.
+  - Added domain constants: `RecoveryTransactionType` (`Payment`, `CreditNote`, `Adjustment`), `WriteOffReasonCodes` (`CarrierInsolvent`, `DisputedUnrecoverable`, `DeMinimisBalance`, `CommercialSettlement`, `Other`).
+  - Extended `Claim` aggregate root with guarded domain methods: `MoveToSettlementPending`, `RecordRecovery`, `WriteOff`, and `Close`.
+  - Enforced Invariant 5 (recovered amount cannot exceed approved amount without an explicit adjustment transaction).
+  - Enforced Invariant 8 & 9 (paid and closed claims cannot return to draft; closed claims are immutable).
+  - Enforced Invariant 11 & Edge Case 17 (duplicate payment/credit note imports rejected by unique external transaction reference constraint).
+  - Enforced Invariant 12 (AI models and LLMs strictly forbidden from executing financial state transitions).
+  - Enforced Closure Definition of Done: claim cannot close with unexplained balance (`ClaimedAmount == RecoveredAmount + WrittenOffAmount`).
+  - Added outbox integration event `ClaimRecoveryRecordedV1` in `ResolveOps.Messaging.Events`.
+  - Added EF Core configuration `RecoveryTransactionConfiguration` with unique index `uix_recovery_transactions_tenant_ref` on `(tenant_id, external_reference)`.
+  - Updated `ClaimConfiguration` with precision `decimal(19,4)` for `WrittenOffAmount` and mapped `RecoveryTransactions` navigation collection.
+  - Added `DbSet<RecoveryTransaction>` with global tenant filter in `AppDbContext`.
+  - Generated EF Core migration `20260922153840_AddFinancialRecoveryAndSettlement`.
+  - Added `CanCloseClaim` permission and assigned to `TenantAdmin`, `OperationsManager`, and `Finance` roles. Added authorization policies `RequireWriteOffClaim` and `RequireCloseClaim`.
+  - Implemented 4 vertical slice Minimal API features adhering to strict 1-class-per-file convention in `ResolveOps.Modules.Claims`:
+    - `POST /api/claims/{claimId}/recovery` (and alias `/api/claims/{claimId}/record-recovery`)
+    - `POST /api/claims/{claimId}/write-off`
+    - `POST /api/claims/{claimId}/close`
+    - `GET /api/claims/{claimId}/recoveries`
+  - Instrumented OpenTelemetry metrics in `ResolveOps.Observability`: `claims.recovery.recorded.total`, `claims.recovery.amount.total`, `claims.written_off.total`, `claims.written_off.amount.total`, `claims.closed.total`.
+  - Created ADR-029 (`docs/adr/ADR-029-financial-recovery-and-settlement.md`).
+
 - **Phase 11 (Claim approval, submission, response, appeal)**:
   - Added `ClaimApproval` and `CarrierClaimResponse` domain entities in `ResolveOps.Domain.Claims`.
   - Added domain constants: `ApprovalStatus`, `ApprovalType`, `CarrierResponseType`, `SourceChannel`.

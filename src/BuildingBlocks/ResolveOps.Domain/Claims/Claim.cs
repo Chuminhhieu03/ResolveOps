@@ -24,13 +24,19 @@ public sealed class Claim : IAuditableEntity, IHasConcurrencyStamp
     public decimal ClaimedAmount { get; private set; }
     public decimal ApprovedAmount { get; private set; }
     public decimal RecoveredAmount { get; private set; }
+    public decimal WrittenOffAmount { get; private set; }
     public string Currency { get; private set; } = string.Empty;
 
     public string? ExternalSubmissionReference { get; private set; }
     public DateTimeOffset? SubmittedAtUtc { get; private set; }
     public Guid? ApprovedForSubmissionBy { get; private set; }
     public DateTimeOffset? ApprovedForSubmissionAtUtc { get; private set; }
+    public DateTimeOffset? WrittenOffAtUtc { get; private set; }
+    public Guid? WrittenOffBy { get; private set; }
+    public string? WriteOffReason { get; private set; }
     public DateTimeOffset? ClosedAtUtc { get; private set; }
+    public Guid? ClosedBy { get; private set; }
+    public string? ClosingNotes { get; private set; }
 
     public DateTimeOffset CreatedAtUtc { get; set; }
     public string? CreatedBy { get; set; }
@@ -46,6 +52,9 @@ public sealed class Claim : IAuditableEntity, IHasConcurrencyStamp
 
     private readonly List<CarrierClaimResponse> _responses = [];
     public IReadOnlyCollection<CarrierClaimResponse> Responses => _responses.AsReadOnly();
+
+    private readonly List<RecoveryTransaction> _recoveryTransactions = [];
+    public IReadOnlyCollection<RecoveryTransaction> RecoveryTransactions => _recoveryTransactions.AsReadOnly();
 
     private Claim() { } // EF Core
 
@@ -497,6 +506,208 @@ public sealed class Claim : IAuditableEntity, IHasConcurrencyStamp
         }
 
         Status = ClaimStatus.Appealed;
+        return Result.Success();
+    }
+
+    public Result MoveToSettlementPending()
+    {
+        if (Status != ClaimStatus.Approved && Status != ClaimStatus.PartiallyApproved)
+        {
+            return Result.Failure(new DomainError(
+                "INVALID_STATE_TRANSITION",
+                $"Cannot move claim to SettlementPending from status '{Status}'. Only Approved or PartiallyApproved claims can enter settlement pending."));
+        }
+
+        Status = ClaimStatus.SettlementPending;
+        return Result.Success();
+    }
+
+    public Result<RecoveryTransaction> RecordRecovery(
+        string transactionType,
+        string externalReference,
+        decimal amount,
+        string currency,
+        DateTimeOffset receivedAtUtc,
+        Guid recordedBy,
+        string? notes,
+        TimeProvider timeProvider)
+    {
+        if (Status != ClaimStatus.SettlementPending &&
+            Status != ClaimStatus.Approved &&
+            Status != ClaimStatus.PartiallyApproved &&
+            Status != ClaimStatus.Paid)
+        {
+            return Result<RecoveryTransaction>.Failure(new DomainError(
+                "INVALID_STATE_TRANSITION",
+                $"Cannot record recovery for claim in status '{Status}'. Claim must be in Approved, PartiallyApproved, SettlementPending, or Paid status."));
+        }
+
+        if (string.IsNullOrWhiteSpace(currency) || !string.Equals(currency.Trim(), Currency, StringComparison.OrdinalIgnoreCase))
+        {
+            return Result<RecoveryTransaction>.Failure(new DomainError(
+                "CURRENCY_MISMATCH",
+                $"Transaction currency '{currency}' does not match claim currency '{Currency}'."));
+        }
+
+        // Invariant 5: Recovered amount cannot exceed approved amount without an explicit adjustment transaction
+        var projectedRecovered = RecoveredAmount + amount;
+        if (transactionType != RecoveryTransactionType.Adjustment && projectedRecovered > ApprovedAmount)
+        {
+            return Result<RecoveryTransaction>.Failure(new DomainError(
+                "RECOVERY_EXCEEDS_APPROVED",
+                $"Recovered amount ({projectedRecovered}) cannot exceed approved amount ({ApprovedAmount}) without an explicit Adjustment transaction."));
+        }
+
+        if (projectedRecovered < 0)
+        {
+            return Result<RecoveryTransaction>.Failure(new DomainError(
+                "NEGATIVE_RECOVERED_AMOUNT",
+                "Total recovered amount cannot be negative."));
+        }
+
+        var transactionResult = RecoveryTransaction.Create(
+            TenantId,
+            Id,
+            transactionType,
+            externalReference,
+            amount,
+            currency,
+            receivedAtUtc,
+            recordedBy,
+            notes,
+            timeProvider);
+
+        if (transactionResult.IsFailure)
+        {
+            return transactionResult;
+        }
+
+        var transaction = transactionResult.Value;
+        _recoveryTransactions.Add(transaction);
+
+        // Recalculate recovered amount
+        RecoveredAmount = _recoveryTransactions.Sum(t => t.Amount);
+
+        // Lifecycle transitions:
+        // If recovered amount reaches or exceeds approved amount, move to Paid; otherwise SettlementPending
+        if (RecoveredAmount >= ApprovedAmount && ApprovedAmount > 0)
+        {
+            Status = ClaimStatus.Paid;
+        }
+        else
+        {
+            Status = ClaimStatus.SettlementPending;
+        }
+
+        return Result<RecoveryTransaction>.Success(transaction);
+    }
+
+    public Result WriteOff(
+        decimal writeOffAmount,
+        string reason,
+        Guid approvedBy,
+        TimeProvider timeProvider)
+    {
+        // Invariant 12: AI cannot execute financial state transitions (enforced at auth & domain boundary)
+        if (Status != ClaimStatus.Denied &&
+            Status != ClaimStatus.PartiallyApproved &&
+            Status != ClaimStatus.SettlementPending &&
+            Status != ClaimStatus.Approved)
+        {
+            return Result.Failure(new DomainError(
+                "INVALID_STATE_TRANSITION",
+                $"Cannot write off claim in status '{Status}'. Only Denied, PartiallyApproved, Approved, or SettlementPending claims can be written off."));
+        }
+
+        if (writeOffAmount <= 0)
+        {
+            return Result.Failure(new DomainError(
+                "INVALID_AMOUNT",
+                "Write-off amount must be greater than zero."));
+        }
+
+        if (!WriteOffReasonCodes.IsValid(reason))
+        {
+            return Result.Failure(new DomainError(
+                "INVALID_WRITE_OFF_REASON",
+                $"Invalid write-off reason code: '{reason}'."));
+        }
+
+        if (approvedBy == Guid.Empty)
+        {
+            return Result.Failure(new DomainError(
+                "INVALID_APPROVER",
+                "Approver user ID must not be empty."));
+        }
+
+        // Maximum allowable write-off: cannot exceed remaining unrecovered exposure (ClaimedAmount - RecoveredAmount)
+        var maxAllowableWriteOff = ClaimedAmount - RecoveredAmount;
+        if (WrittenOffAmount + writeOffAmount > maxAllowableWriteOff)
+        {
+            return Result.Failure(new DomainError(
+                "WRITE_OFF_EXCEEDS_EXPOSURE",
+                $"Total written-off amount ({WrittenOffAmount + writeOffAmount}) cannot exceed remaining unrecovered exposure ({maxAllowableWriteOff})."));
+        }
+
+        WrittenOffAmount += writeOffAmount;
+        WrittenOffAtUtc = timeProvider.GetUtcNow();
+        WrittenOffBy = approvedBy;
+        WriteOffReason = reason;
+
+        return Result.Success();
+    }
+
+    public Result Close(
+        string? closingNotes,
+        Guid closedBy,
+        TimeProvider timeProvider)
+    {
+        if (Status == ClaimStatus.Closed)
+        {
+            return Result.Failure(new DomainError(
+                "INVALID_STATE_TRANSITION",
+                "Claim is already closed."));
+        }
+
+        if (Status == ClaimStatus.Cancelled)
+        {
+            return Result.Failure(new DomainError(
+                "INVALID_STATE_TRANSITION",
+                "Cannot close a cancelled claim."));
+        }
+
+        if (Status != ClaimStatus.Paid &&
+            Status != ClaimStatus.SettlementPending &&
+            Status != ClaimStatus.Denied)
+        {
+            return Result.Failure(new DomainError(
+                "INVALID_STATE_TRANSITION",
+                $"Cannot close claim in status '{Status}'. Only Paid, SettlementPending, or Denied claims can be closed."));
+        }
+
+        if (closedBy == Guid.Empty)
+        {
+            return Result.Failure(new DomainError(
+                "INVALID_CLOSER",
+                "ClosedBy user ID must not be empty."));
+        }
+
+        // Settlement Definition of Done & Invariant 9:
+        // Claim cannot close with unexplained balance (§24 DoD & Invariant 9).
+        // Total claimed amount must equal recovered amount + written off amount.
+        var unexplainedBalance = ClaimedAmount - (RecoveredAmount + WrittenOffAmount);
+        if (unexplainedBalance > 0)
+        {
+            return Result.Failure(new DomainError(
+                "UNEXPLAINED_BALANCE",
+                $"Claim cannot close with an unexplained balance of {unexplainedBalance} {Currency}. Any difference between claimed and recovered amounts must be written off prior to closure."));
+        }
+
+        Status = ClaimStatus.Closed;
+        ClosedAtUtc = timeProvider.GetUtcNow();
+        ClosedBy = closedBy;
+        ClosingNotes = string.IsNullOrWhiteSpace(closingNotes) ? null : closingNotes.Trim();
+
         return Result.Success();
     }
 

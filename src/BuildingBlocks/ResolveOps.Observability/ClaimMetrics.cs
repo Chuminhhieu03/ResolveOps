@@ -41,4 +41,24 @@ public static class ClaimMetrics
     public static readonly Counter<double> ClaimsAmountApprovedTotal = Meter.CreateCounter<double>(
         "claims.amount.approved.total",
         description: "Total approved claim amount across carriers");
+
+    public static readonly Counter<long> ClaimsRecoveryRecordedTotal = Meter.CreateCounter<long>(
+        "claims.recovery.recorded.total",
+        description: "Total number of recovery transactions recorded");
+
+    public static readonly Counter<double> ClaimsRecoveryAmountTotal = Meter.CreateCounter<double>(
+        "claims.recovery.amount.total",
+        description: "Total recovered amount across claims");
+
+    public static readonly Counter<long> ClaimsWrittenOffTotal = Meter.CreateCounter<long>(
+        "claims.written_off.total",
+        description: "Total number of claim write-offs approved");
+
+    public static readonly Counter<double> ClaimsWrittenOffAmountTotal = Meter.CreateCounter<double>(
+        "claims.written_off.amount.total",
+        description: "Total amount written off across claims");
+
+    public static readonly Counter<long> ClaimsClosedTotal = Meter.CreateCounter<long>(
+        "claims.closed.total",
+        description: "Total number of claims closed");
 }

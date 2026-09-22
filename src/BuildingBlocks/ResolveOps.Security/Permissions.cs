@@ -33,6 +33,7 @@ public static class Permissions
     public const string CanRecordCarrierDecision = "CanRecordCarrierDecision";
     public const string CanRecordRecovery = "CanRecordRecovery";
     public const string CanWriteOffClaim = "CanWriteOffClaim";
+    public const string CanCloseClaim = "CanCloseClaim";
 
     // ── Evidence ─────────────────────────────────────────────────────────────
     public const string CanUploadEvidence = "CanUploadEvidence";
@@ -64,7 +65,7 @@ public static class Permissions
                 CanViewCases, CanCreateExceptionCase, CanTriageCase, CanAssignCase, CanUpdateCase, CanCloseCase, CanCancelCase,
                 CanReopenClosedCase, CanOverrideSeverity,
                 CanViewClaims, CanCreateClaim, CanApproveClaimSubmission, CanRecordCarrierDecision,
-                CanRecordRecovery, CanWriteOffClaim,
+                CanRecordRecovery, CanWriteOffClaim, CanCloseClaim,
                 CanUploadEvidence, CanDownloadEvidence,
                 CanCreateShipment, CanViewShipments, CanCancelShipment,
                 CanViewCarriers, CanManageCarriers,
@@ -77,7 +78,7 @@ public static class Permissions
             [
                 CanViewCases, CanCreateExceptionCase, CanTriageCase, CanAssignCase, CanUpdateCase, CanCloseCase, CanCancelCase,
                 CanReopenClosedCase, CanOverrideSeverity,
-                CanViewClaims, CanCreateClaim,
+                CanViewClaims, CanCreateClaim, CanCloseClaim,
                 CanUploadEvidence, CanDownloadEvidence,
                 CanViewShipments,
                 CanViewCarriers, CanManageCarriers,
@@ -109,7 +110,7 @@ public static class Permissions
             [
                 CanViewCases,
                 CanViewClaims, CanCreateClaim, CanApproveClaimSubmission, CanRecordCarrierDecision,
-                CanRecordRecovery,
+                CanRecordRecovery, CanCloseClaim,
                 CanUploadEvidence, CanDownloadEvidence,
                 CanViewShipments,
                 CanViewCarriers, CanViewCustomers, CanViewLocations,
@@ -130,7 +131,7 @@ public static class Permissions
             ],
             [Roles.Finance] =
             [
-                CanViewClaims, CanRecordRecovery, CanWriteOffClaim,
+                CanViewClaims, CanRecordRecovery, CanWriteOffClaim, CanCloseClaim,
                 CanDownloadEvidence,
                 CanViewShipments,
             ],

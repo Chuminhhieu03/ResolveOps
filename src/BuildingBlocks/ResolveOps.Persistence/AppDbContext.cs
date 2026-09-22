@@ -98,11 +98,12 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
     public DbSet<EvidenceDocument> EvidenceDocuments => Set<EvidenceDocument>();
     public DbSet<EvidenceRequirement> EvidenceRequirements => Set<EvidenceRequirement>();
 
-    // ── Claims (Phase 10 & 11) ────────────────────────────────────────────────
+    // ── Claims (Phase 10, 11 & 12) ───────────────────────────────────────────
     public DbSet<Claim> Claims => Set<Claim>();
     public DbSet<ClaimLossComponent> ClaimLossComponents => Set<ClaimLossComponent>();
     public DbSet<ClaimApproval> ClaimApprovals => Set<ClaimApproval>();
     public DbSet<CarrierClaimResponse> CarrierClaimResponses => Set<CarrierClaimResponse>();
+    public DbSet<RecoveryTransaction> RecoveryTransactions => Set<RecoveryTransaction>();
 
     // ── Messaging (Phase 5) ───────────────────────────────────────────────────
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
@@ -280,6 +281,9 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
 
         builder.Entity<CarrierClaimResponse>()
             .HasQueryFilter(r => _currentTenantId == null || r.TenantId == _currentTenantId);
+
+        builder.Entity<RecoveryTransaction>()
+            .HasQueryFilter(t => _currentTenantId == null || t.TenantId == _currentTenantId);
 
 
 

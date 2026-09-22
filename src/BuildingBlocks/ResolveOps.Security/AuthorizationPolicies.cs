@@ -33,6 +33,8 @@ public static class AuthorizationPolicies
     public const string RequireApproveClaimSubmission = "require_approve_claim_submission";
     public const string RequireRecordCarrierDecision = "require_record_carrier_decision";
     public const string RequireRecordRecovery = "require_record_recovery";
+    public const string RequireWriteOffClaim = "require_write_off_claim";
+    public const string RequireCloseClaim = "require_close_claim";
 
     public const string RequireUploadEvidence = "require_upload_evidence";
     public const string RequireDownloadEvidence = "require_download_evidence";
@@ -74,6 +76,8 @@ public static class AuthorizationPolicies
             .AddPolicy(RequireApproveClaimSubmission, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanApproveClaimSubmission))
             .AddPolicy(RequireRecordCarrierDecision, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanRecordCarrierDecision))
             .AddPolicy(RequireRecordRecovery, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanRecordRecovery))
+            .AddPolicy(RequireWriteOffClaim, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanWriteOffClaim))
+            .AddPolicy(RequireCloseClaim, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanCloseClaim))
             .AddPolicy(RequireUploadEvidence, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanUploadEvidence))
             .AddPolicy(RequireDownloadEvidence, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanDownloadEvidence))
             .AddPolicy(RequireCreateShipment, p => p.RequireClaim(ClaimTypes.Permission, Permissions.CanCreateShipment))
