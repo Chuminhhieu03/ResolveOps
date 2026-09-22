@@ -22,9 +22,7 @@ public sealed class AppealClaimEndpoint : IEndpoint
             HttpContext httpContext,
             CancellationToken cancellationToken) =>
         {
-            var userIdStr = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var appealedBy = Guid.TryParse(userIdStr, out var parsed) ? parsed : Guid.Empty;
-
+            var appealedBy = httpContext.GetUserId();
             var command = new AppealClaimCommand(claimId, request.AppealReason, request.Notes, appealedBy);
 
             var validation = await validator.ValidateAsync(command, cancellationToken);

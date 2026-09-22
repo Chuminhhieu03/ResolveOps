@@ -22,9 +22,7 @@ public sealed class ApproveForSubmissionEndpoint : IEndpoint
             HttpContext httpContext,
             CancellationToken cancellationToken) =>
         {
-            var userIdStr = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var approverId = Guid.TryParse(userIdStr, out var parsed) ? parsed : Guid.Empty;
-
+            var approverId = httpContext.GetUserId();
             var command = new ApproveForSubmissionCommand(claimId, approverId, request?.Note);
 
             var validation = await validator.ValidateAsync(command, cancellationToken);

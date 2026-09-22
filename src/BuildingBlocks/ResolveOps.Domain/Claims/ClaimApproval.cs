@@ -2,7 +2,7 @@ using System;
 
 namespace ResolveOps.Domain.Claims;
 
-public sealed class ClaimApproval
+public sealed class ClaimApproval : IAuditableEntity, IHasConcurrencyStamp
 {
     public Guid Id { get; private set; }
     public Guid TenantId { get; private set; }
@@ -15,6 +15,15 @@ public sealed class ClaimApproval
     public DateTimeOffset? DecidedAtUtc { get; private set; }
     public string? DecisionNote { get; private set; }
     public string ClaimVersion { get; private set; } = string.Empty;
+
+    // IAuditableEntity
+    public DateTimeOffset CreatedAtUtc { get; set; }
+    public string? CreatedBy { get; set; }
+    public DateTimeOffset? UpdatedAtUtc { get; set; }
+    public string? UpdatedBy { get; set; }
+
+    // IHasConcurrencyStamp
+    public string ConcurrencyStamp { get; set; } = Guid.NewGuid().ToString("N");
 
     private ClaimApproval() { } // EF Core
 

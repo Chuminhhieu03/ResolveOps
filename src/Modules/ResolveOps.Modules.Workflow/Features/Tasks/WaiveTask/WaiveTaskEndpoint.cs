@@ -28,11 +28,7 @@ public sealed class WaiveTaskEndpoint : IEndpoint
                 return Results.ValidationProblem(validation.ToDictionary());
             }
 
-            var userIdString = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (!Guid.TryParse(userIdString, out var currentUserId))
-            {
-                return Results.Unauthorized();
-            }
+            var currentUserId = httpContext.GetUserId();
 
             var result = await handler.HandleAsync(command, currentUserId, cancellationToken);
 

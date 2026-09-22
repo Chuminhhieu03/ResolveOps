@@ -2,7 +2,7 @@ using System;
 
 namespace ResolveOps.Domain.Claims;
 
-public sealed class CarrierClaimResponse
+public sealed class CarrierClaimResponse : IAuditableEntity
 {
     public Guid Id { get; private set; }
     public Guid TenantId { get; private set; }
@@ -16,7 +16,12 @@ public sealed class CarrierClaimResponse
     public string? Notes { get; private set; }
     public Guid RecordedBy { get; private set; }
     public string SourceChannel { get; private set; } = string.Empty;
-    public DateTimeOffset CreatedAtUtc { get; private set; }
+
+    // IAuditableEntity
+    public DateTimeOffset CreatedAtUtc { get; set; }
+    public string? CreatedBy { get; set; }
+    public DateTimeOffset? UpdatedAtUtc { get; set; }
+    public string? UpdatedBy { get; set; }
 
     private CarrierClaimResponse() { } // EF Core
 
@@ -54,7 +59,10 @@ public sealed class CarrierClaimResponse
             Notes = notes,
             RecordedBy = recordedBy,
             SourceChannel = sourceChannel,
-            CreatedAtUtc = timeProvider.GetUtcNow()
+            CreatedAtUtc = timeProvider.GetUtcNow(),
+            CreatedBy = recordedBy.ToString(),
+            UpdatedAtUtc = timeProvider.GetUtcNow(),
+            UpdatedBy = recordedBy.ToString()
         };
     }
 }

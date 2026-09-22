@@ -22,9 +22,7 @@ public sealed class CancelClaimEndpoint : IEndpoint
             HttpContext httpContext,
             CancellationToken cancellationToken) =>
         {
-            var userIdStr = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var cancelledBy = Guid.TryParse(userIdStr, out var parsed) ? parsed : Guid.Empty;
-
+            var cancelledBy = httpContext.GetUserId();
             var command = new CancelClaimCommand(claimId, request.Reason, cancelledBy);
 
             var validation = await validator.ValidateAsync(command, cancellationToken);

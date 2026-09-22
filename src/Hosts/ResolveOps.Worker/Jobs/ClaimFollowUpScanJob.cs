@@ -69,7 +69,7 @@ public sealed class ClaimFollowUpScanJob : IJob
             var taskExists = await dbContext.WorkflowTasks
                 .IgnoreQueryFilters()
                 .AnyAsync(t => t.ClaimId == claim.Id &&
-                               t.TaskType == "ClaimFollowUp" &&
+                               t.TaskType == WorkflowTaskType.ClaimFollowUp &&
                                t.Status != WorkflowTaskStatus.Completed &&
                                t.Status != WorkflowTaskStatus.Cancelled,
                     cancellationToken);
@@ -81,7 +81,7 @@ public sealed class ClaimFollowUpScanJob : IJob
                 var task = WorkflowTask.Create(
                     tenantId: claim.TenantId,
                     caseId: claim.CaseId,
-                    taskType: "ClaimFollowUp",
+                    taskType: WorkflowTaskType.ClaimFollowUp,
                     title: $"Follow-up on submitted claim {claim.ClaimNumber}",
                     description: $"Carrier has not provided a decision on claim {claim.ClaimNumber} submitted on {claim.SubmittedAtUtc:d}.",
                     priority: WorkflowTaskPriority.Normal,
@@ -112,7 +112,7 @@ public sealed class ClaimFollowUpScanJob : IJob
             var taskExists = await dbContext.WorkflowTasks
                 .IgnoreQueryFilters()
                 .AnyAsync(t => t.ClaimId == claim.Id &&
-                               t.TaskType == "SupplyInformation" &&
+                               t.TaskType == WorkflowTaskType.SupplyInformation &&
                                t.Status != WorkflowTaskStatus.Completed &&
                                t.Status != WorkflowTaskStatus.Cancelled,
                     cancellationToken);
@@ -124,7 +124,7 @@ public sealed class ClaimFollowUpScanJob : IJob
                 var task = WorkflowTask.Create(
                     tenantId: claim.TenantId,
                     caseId: claim.CaseId,
-                    taskType: "SupplyInformation",
+                    taskType: WorkflowTaskType.SupplyInformation,
                     title: $"Supply requested information for claim {claim.ClaimNumber}",
                     description: $"Carrier requested additional information for claim {claim.ClaimNumber}. Please supply the required details before deadline.",
                     priority: WorkflowTaskPriority.High,

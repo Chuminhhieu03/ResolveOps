@@ -7,7 +7,7 @@ namespace ResolveOps.Domain.Shipments;
 /// - SequenceNumber is unique within a shipment (enforced by database unique index).
 /// - An inactive carrier check is applied at the command level before creating a leg.
 /// </summary>
-public sealed class ShipmentLeg
+public sealed class ShipmentLeg : IHasConcurrencyStamp
 {
     public Guid Id { get; private set; }
     public Guid TenantId { get; private set; }

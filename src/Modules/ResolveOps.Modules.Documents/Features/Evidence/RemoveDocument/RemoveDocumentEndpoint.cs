@@ -23,9 +23,7 @@ public sealed class RemoveDocumentEndpoint : IEndpoint
             HttpContext httpContext,
             CancellationToken cancellationToken) =>
         {
-            var userIdString = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
-            Guid? currentUserId = Guid.TryParse(userIdString, out var parsedId) ? parsedId : null;
-
+            var currentUserId = httpContext.TryGetUserId();
             var result = await handler.HandleAsync(documentId, currentUserId, cancellationToken);
 
             return result.Match(

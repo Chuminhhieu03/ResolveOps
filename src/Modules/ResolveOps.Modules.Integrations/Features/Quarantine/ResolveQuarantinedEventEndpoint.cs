@@ -18,9 +18,7 @@ public sealed class ResolveQuarantinedEventEndpoint : IEndpoint
             CancellationToken cancellationToken) =>
         {
             var correlationId = httpContext.TraceIdentifier;
-            var subClaim = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
-                ?? httpContext.User.FindFirst("sub")?.Value;
-            var userId = Guid.TryParse(subClaim, out var parsedUserId) ? parsedUserId : (Guid?)null;
+            var userId = httpContext.TryGetUserId();
 
             var result = await handler.HandleAsync(id, request, userId, correlationId, cancellationToken);
 

@@ -22,9 +22,7 @@ public sealed class ReturnToDraftEndpoint : IEndpoint
             HttpContext httpContext,
             CancellationToken cancellationToken) =>
         {
-            var userIdStr = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var reviewerId = Guid.TryParse(userIdStr, out var parsed) ? parsed : Guid.Empty;
-
+            var reviewerId = httpContext.GetUserId();
             var command = new ReturnToDraftCommand(claimId, reviewerId, request.Reason);
 
             var validation = await validator.ValidateAsync(command, cancellationToken);

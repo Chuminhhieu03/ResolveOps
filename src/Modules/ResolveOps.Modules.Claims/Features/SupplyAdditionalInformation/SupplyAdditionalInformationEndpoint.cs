@@ -22,9 +22,7 @@ public sealed class SupplyAdditionalInformationEndpoint : IEndpoint
             HttpContext httpContext,
             CancellationToken cancellationToken) =>
         {
-            var userIdStr = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var recordedBy = Guid.TryParse(userIdStr, out var parsed) ? parsed : Guid.Empty;
-
+            var recordedBy = httpContext.GetUserId();
             var command = new SupplyAdditionalInformationCommand(claimId, request.ResponseNotes, recordedBy);
 
             var validation = await validator.ValidateAsync(command, cancellationToken);

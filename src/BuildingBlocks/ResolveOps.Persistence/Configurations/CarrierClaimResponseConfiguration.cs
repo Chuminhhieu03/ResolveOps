@@ -35,6 +35,11 @@ public class CarrierClaimResponseConfiguration : IEntityTypeConfiguration<Carrie
             .IsRequired()
             .HasMaxLength(30);
 
+        builder.Property(r => r.CreatedAtUtc).IsRequired();
+        builder.Property(r => r.CreatedBy).HasMaxLength(100);
+        builder.Property(r => r.UpdatedAtUtc);
+        builder.Property(r => r.UpdatedBy).HasMaxLength(100);
+
         builder.HasIndex(r => new { r.TenantId, r.ClaimId })
             .HasDatabaseName("ix_carrier_claim_responses_tenant_claim");
     }

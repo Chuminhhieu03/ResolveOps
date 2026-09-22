@@ -22,9 +22,7 @@ public sealed class RecordAcknowledgementEndpoint : IEndpoint
             HttpContext httpContext,
             CancellationToken cancellationToken) =>
         {
-            var userIdStr = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var recordedBy = Guid.TryParse(userIdStr, out var parsed) ? parsed : Guid.Empty;
-
+            var recordedBy = httpContext.GetUserId();
             var command = new RecordAcknowledgementCommand(
                 claimId,
                 request.CarrierReference,

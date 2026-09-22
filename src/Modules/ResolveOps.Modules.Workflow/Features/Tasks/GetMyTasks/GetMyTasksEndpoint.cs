@@ -19,11 +19,7 @@ public sealed class GetMyTasksEndpoint : IEndpoint
             HttpContext httpContext,
             CancellationToken cancellationToken) =>
         {
-            var userIdString = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (!Guid.TryParse(userIdString, out var userId))
-            {
-                return Results.Unauthorized();
-            }
+            var userId = httpContext.GetUserId();
 
             var query = new GetMyTasksQuery(userId, status, priority);
             var result = await handler.HandleAsync(query, cancellationToken);

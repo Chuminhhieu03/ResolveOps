@@ -34,9 +34,7 @@ public sealed class CompleteUploadEndpoint : IEndpoint
                 return Results.ValidationProblem(validation.ToDictionary());
             }
 
-            var userIdString = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
-            Guid? currentUserId = Guid.TryParse(userIdString, out var parsedId) ? parsedId : null;
-
+            var currentUserId = httpContext.TryGetUserId();
             var result = await handler.HandleAsync(command, currentUserId, cancellationToken);
 
             return result.Match(

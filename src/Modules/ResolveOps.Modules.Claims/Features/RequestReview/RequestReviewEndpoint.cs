@@ -20,9 +20,7 @@ public sealed class RequestReviewEndpoint : IEndpoint
             HttpContext httpContext,
             CancellationToken cancellationToken) =>
         {
-            var userIdStr = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var userId = Guid.TryParse(userIdStr, out var parsed) ? parsed : Guid.Empty;
-
+            var userId = httpContext.GetUserId();
             var command = new RequestReviewCommand(claimId, userId);
 
             var validation = await validator.ValidateAsync(command, cancellationToken);

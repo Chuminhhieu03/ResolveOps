@@ -73,13 +73,19 @@ public sealed class WorkflowTask : IAuditableEntity, IHasConcurrencyStamp
 
         var now = timeProvider.GetUtcNow();
 
+        var normalizedTaskType = string.IsNullOrWhiteSpace(taskType) ? WorkflowTaskType.ManualAction : taskType.Trim();
+        if (!WorkflowTaskType.IsValid(normalizedTaskType))
+        {
+            throw new ArgumentException($"Invalid workflow task type: '{taskType}'.", nameof(taskType));
+        }
+
         return new WorkflowTask
         {
             Id = Guid.NewGuid(),
             TenantId = tenantId,
             CaseId = caseId,
             ClaimId = claimId,
-            TaskType = string.IsNullOrWhiteSpace(taskType) ? WorkflowTaskType.ManualAction : taskType,
+            TaskType = normalizedTaskType,
             Title = title.Trim(),
             Description = description?.Trim(),
             Status = WorkflowTaskStatus.Open,
