@@ -55,4 +55,15 @@ public interface IObjectStorageService
     /// Application-level removal uses DocumentStatus.Removed (soft removal in DB).
     /// </summary>
     Task DeleteObjectAsync(string container, string objectName, CancellationToken ct);
+
+    /// <summary>
+    /// Uploads an object directly from a stream.
+    /// Used by background workers (e.g., asynchronous report exports).
+    /// </summary>
+    Task UploadObjectAsync(
+        string container,
+        string objectName,
+        Stream content,
+        string contentType,
+        CancellationToken ct);
 }

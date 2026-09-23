@@ -10,6 +10,7 @@ using ResolveOps.Domain.Identity;
 using ResolveOps.Domain.Messaging;
 using ResolveOps.Domain.Notifications;
 using ResolveOps.Domain.Partners;
+using ResolveOps.Domain.Reporting;
 using ResolveOps.Domain.Shipments;
 using ResolveOps.Domain.Tenancy;
 using ResolveOps.Domain.Tracking;
@@ -111,6 +112,10 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
     public DbSet<NotificationDelivery> NotificationDeliveries => Set<NotificationDelivery>();
+
+    // ── Reporting (Phase 14) ──────────────────────────────────────────────────
+    public DbSet<ExportRequest> ExportRequests => Set<ExportRequest>();
+    public DbSet<CarrierPerformanceSnapshot> CarrierPerformanceSnapshots => Set<CarrierPerformanceSnapshot>();
 
     // ── Messaging (Phase 5) ───────────────────────────────────────────────────
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
@@ -304,6 +309,13 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
 
         builder.Entity<NotificationDelivery>()
             .HasQueryFilter(d => _currentTenantId == null || d.TenantId == _currentTenantId);
+
+        // Reporting — tenant-scoped (Phase 14)
+        builder.Entity<ExportRequest>()
+            .HasQueryFilter(e => _currentTenantId == null || e.TenantId == _currentTenantId);
+
+        builder.Entity<CarrierPerformanceSnapshot>()
+            .HasQueryFilter(c => _currentTenantId == null || c.TenantId == _currentTenantId);
 
 
 

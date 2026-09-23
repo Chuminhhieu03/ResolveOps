@@ -12,6 +12,7 @@ using ResolveOps.Modules.Identity;
 using ResolveOps.Modules.Integrations;
 using ResolveOps.Modules.Notifications;
 using ResolveOps.Modules.Partners;
+using ResolveOps.Modules.Reporting;
 using ResolveOps.Modules.Shipments;
 using ResolveOps.Modules.Tenancy;
 using ResolveOps.Modules.Tracking;
@@ -116,6 +117,7 @@ builder.Services.AddWorkflowModule();
 builder.Services.AddDocumentsModule(builder.Configuration);
 builder.Services.AddClaimsModule();
 builder.Services.AddNotificationsModule(builder.Configuration);
+builder.Services.AddReportingModule(builder.Configuration);
 
 builder.Services.AddScoped<ResolveOps.Application.IErrorMessageProvider, ResolveOps.Persistence.Services.DatabaseErrorMessageProvider>();
 builder.Services.AddScoped<ResolveOps.Application.Idempotency.IIdempotencyStore, ResolveOps.Persistence.Services.EfCoreIdempotencyStore>();
@@ -157,8 +159,8 @@ if (app.Environment.IsDevelopment())
 app.MapGet("/api/version", () => new
 {
     Product = "ResolveOps",
-    Phase = "13",
-    Description = "Notifications and realtime operations",
+    Phase = "14",
+    Description = "Reporting and carrier scorecards",
     BuildTimestamp = DateTime.UtcNow.ToString("O"),
 })
 .WithName("GetVersion")
@@ -176,6 +178,7 @@ app.MapWorkflowEndpoints();
 app.MapDocumentsEndpoints();
 app.MapClaimsEndpoints();
 app.MapNotificationsEndpoints();
+app.MapReportingEndpoints();
 
 // ─────────────────────────────────────────────────────────────────────────
 

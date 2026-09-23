@@ -143,4 +143,32 @@ public sealed class MinIoObjectStorageService : IObjectStorageService
         await _s3.DeleteObjectAsync(container, objectName, ct).ConfigureAwait(false);
         _logDeleted(_logger, objectName, container, null);
     }
+
+    /// <inheritdoc />
+    public async Task UploadObjectAsync(
+        string container,
+        string objectName,
+        Stream content,
+        string contentType,
+        CancellationToken ct)
+    {
+        var request = new PutObjectRequest
+        {
+            BucketName = container,
+            Key = objectName,
+            InputStream = content,
+            ContentType = contentType,
+            AutoCloseStream = false
+        };
+
+        try
+        {
+            await _s3.PutObjectAsync(request, ct).ConfigureAwait(false);
+        }
+        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound || ex.ErrorCode == "NoSuchBucket")
+        {
+            await _s3.PutBucketAsync(new PutBucketRequest { BucketName = container }, ct).ConfigureAwait(false);
+            await _s3.PutObjectAsync(request, ct).ConfigureAwait(false);
+        }
+    }
 }

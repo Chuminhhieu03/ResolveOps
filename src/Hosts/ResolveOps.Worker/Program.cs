@@ -4,6 +4,7 @@ using ResolveOps.Messaging;
 using ResolveOps.Modules.Documents;
 using ResolveOps.Modules.Exceptions;
 using ResolveOps.Modules.Notifications;
+using ResolveOps.Modules.Reporting;
 using ResolveOps.Modules.Workflow;
 using ResolveOps.Persistence;
 using ResolveOps.ServiceDefaults;
@@ -57,14 +58,16 @@ builder.Services.AddExceptionsModule();
 builder.Services.AddWorkflowModule();
 builder.Services.AddDocumentsModule(builder.Configuration);
 builder.Services.AddNotificationsModule(builder.Configuration);
+builder.Services.AddReportingModule(builder.Configuration);
 
-// ── Messaging & Background Consumers (Phase 5, 6, 7 & 13) ──────────────────────────────────
+// ── Messaging & Background Consumers (Phase 5, 6, 7, 13 & 14) ──────────────────────────────────
 builder.Services.AddScoped<IOutboxWriter, OutboxWriter>();
 builder.Services.AddSingleton<RabbitMqPublisher>();
 builder.Services.AddHostedService<OutboxPublisherService>();
 builder.Services.AddHostedService<ResolveOps.Worker.Consumers.TrackingIngestionConsumerService>();
 builder.Services.AddHostedService<ResolveOps.Worker.Consumers.ExceptionEvaluationConsumerService>();
 builder.Services.AddHostedService<ResolveOps.Worker.Consumers.NotificationConsumerService>();
+builder.Services.AddHostedService<ResolveOps.Worker.Consumers.ReportingProjectionConsumerService>();
 
 // ── Quartz.NET Scheduled Jobs (Phase 7, 8, 9 / spec §18.2, §24) ──────────────────────
 builder.Services.AddQuartz(q =>
@@ -125,6 +128,16 @@ builder.Services.AddQuartz(q =>
         .WithIdentity("NotificationEmailRetryScanTrigger")
         .WithSimpleSchedule(x => x
             .WithIntervalInMinutes(2)
+            .RepeatForever()));
+
+    // Phase 14: Asynchronous CSV export processing (runs every 30 seconds)
+    var exportJobKey = new JobKey("ExportProcessingJob");
+    q.AddJob<ExportProcessingJob>(opts => opts.WithIdentity(exportJobKey));
+    q.AddTrigger(opts => opts
+        .ForJob(exportJobKey)
+        .WithIdentity("ExportProcessingTrigger")
+        .WithSimpleSchedule(x => x
+            .WithIntervalInSeconds(30)
             .RepeatForever()));
 });
 builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);

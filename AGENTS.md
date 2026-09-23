@@ -20,10 +20,10 @@ and adds current phase status. When in conflict, the spec wins.
 
 | Field | Value |
 |---|---|
-| **Current phase** | Phase 13 — Notifications and realtime operations |
+| **Current phase** | Phase 14 — Reporting and carrier scorecards |
 | **Phase status** | ✅ Complete |
-| **Next phase** | Phase 14 — Reporting and carrier scorecards |
-| **Last updated** | 2026-09-22 |
+| **Next phase** | Phase 15 — Frontend production workflow |
+| **Last updated** | 2026-09-23 |
 
 ### Phase 0 deliverables completed
 
@@ -162,7 +162,7 @@ The agent MUST NOT:
 | 11 | Claim approval, submission, response, appeal | ✅ Complete |
 | 12 | Financial recovery and settlement | ✅ Complete |
 | 13 | Notifications and realtime operations | ✅ Complete |
-| 14 | Reporting and carrier scorecards | ⬜ Not started |
+| 14 | Reporting and carrier scorecards | ✅ Complete |
 | 15 | Frontend production workflow | ⬜ Not started |
 | 16 | Performance, resilience, and security hardening | ⬜ Not started |
 | 17 | CI/CD and deployment | ⬜ Not started |
