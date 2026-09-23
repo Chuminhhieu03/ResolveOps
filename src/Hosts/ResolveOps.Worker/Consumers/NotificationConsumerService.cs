@@ -68,6 +68,10 @@ public sealed class NotificationConsumerService : BackgroundService
         LoggerMessage.Define<Guid, string>(LogLevel.Warning, new EventId(6, "NoRecipients"),
             "No recipients found in tenant {TenantId} for event {EventType}");
 
+    private static readonly Action<ILogger, ulong, string, Exception?> _logDeadLettered =
+        LoggerMessage.Define<ulong, string>(LogLevel.Warning, new EventId(7, "MessageDeadLettered"),
+            "Notification event delivery {DeliveryTag} routed to DLX due to: {Reason}");
+
     private readonly IConnection _connection;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly TimeProvider _timeProvider;
@@ -176,12 +180,24 @@ public sealed class NotificationConsumerService : BackgroundService
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {
-                    // Graceful shutdown
+                    await channel.BasicNackAsync(deliveryTag, multiple: false, requeue: true, cancellationToken: CancellationToken.None);
                 }
                 catch (Exception ex)
                 {
                     _logError(_logger, deliveryTag, ex);
-                    await channel.BasicNackAsync(deliveryTag, multiple: false, requeue: false, cancellationToken: CancellationToken.None);
+
+                    var isTransient = IsTransientError(ex);
+                    var deathCount = GetDeathCount(ea.BasicProperties.Headers);
+
+                    if (isTransient && deathCount < _options.Value.RetryLimit)
+                    {
+                        await channel.BasicNackAsync(deliveryTag, multiple: false, requeue: true, cancellationToken: CancellationToken.None);
+                    }
+                    else
+                    {
+                        _logDeadLettered(_logger, deliveryTag, isTransient ? "RetryLimitExceeded" : "NonRetryableError", null);
+                        await channel.BasicNackAsync(deliveryTag, multiple: false, requeue: false, cancellationToken: CancellationToken.None);
+                    }
                 }
             };
 
@@ -307,6 +323,8 @@ public sealed class NotificationConsumerService : BackgroundService
             var allowInApp = isMandatory || (inAppPref?.IsEnabled ?? true);
             var allowEmail = isMandatory || (emailPref?.IsEnabled ?? true);
 
+            Guid? notificationId = null;
+
             // In-App Notification
             if (allowInApp)
             {
@@ -329,6 +347,7 @@ public sealed class NotificationConsumerService : BackgroundService
                     if (notificationResult.IsSuccess)
                     {
                         var notification = notificationResult.Value;
+                        notificationId = notification.Id;
                         dbContext.Notifications.Add(notification);
 
                         var deliveryResult = NotificationDelivery.Create(
@@ -374,7 +393,7 @@ public sealed class NotificationConsumerService : BackgroundService
                 {
                     var deliveryResult = NotificationDelivery.Create(
                         tenantId,
-                        null,
+                        notificationId,
                         NotificationChannel.Email,
                         user.Email,
                         details.Title,
@@ -551,5 +570,28 @@ public sealed class NotificationConsumerService : BackgroundService
             default:
                 return null;
         }
+    }
+
+    private static bool IsTransientError(Exception ex) =>
+        ex is TimeoutException ||
+        ex is System.IO.IOException ||
+        ex is Microsoft.Data.SqlClient.SqlException sqlEx && (sqlEx.Number == 1205 || sqlEx.Number == -2);
+
+    private static int GetDeathCount(IDictionary<string, object?>? headers)
+    {
+        if (headers == null || !headers.TryGetValue("x-death", out var deathObj))
+        {
+            return 0;
+        }
+
+        if (deathObj is List<object> deathList && deathList.Count > 0 &&
+            deathList[0] is Dictionary<string, object> deathDict &&
+            deathDict.TryGetValue("count", out var countObj) &&
+            countObj is long count)
+        {
+            return (int)count;
+        }
+
+        return 0;
     }
 }

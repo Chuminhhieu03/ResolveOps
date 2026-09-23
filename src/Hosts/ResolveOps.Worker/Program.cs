@@ -116,6 +116,16 @@ builder.Services.AddQuartz(q =>
         .WithSimpleSchedule(x => x
             .WithIntervalInMinutes(15)
             .RepeatForever()));
+
+    // Phase 13: Notification email retry scan (runs every 2 minutes)
+    var emailRetryJobKey = new JobKey("NotificationEmailRetryScanJob");
+    q.AddJob<NotificationEmailRetryScanJob>(opts => opts.WithIdentity(emailRetryJobKey));
+    q.AddTrigger(opts => opts
+        .ForJob(emailRetryJobKey)
+        .WithIdentity("NotificationEmailRetryScanTrigger")
+        .WithSimpleSchedule(x => x
+            .WithIntervalInMinutes(2)
+            .RepeatForever()));
 });
 builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
 

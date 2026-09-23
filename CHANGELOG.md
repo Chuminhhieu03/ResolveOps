@@ -26,7 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `POST /api/v1/notifications/read-all`
     - `GET /api/v1/notifications/preferences`
     - `PUT /api/v1/notifications/preferences`
-  - Implemented `NotificationConsumerService` background worker in `ResolveOps.Worker.Consumers` subscribing to RabbitMQ integration events (`CaseSlaBreachedV1`, `ExceptionDetectedV1`, `ClaimDecisionRecordedV1`, `ClaimRecoveryRecordedV1`, `ClaimSubmittedV1`) with transactional inbox deduplication.
+  - Implemented `NotificationConsumerService` background worker in `ResolveOps.Worker.Consumers` subscribing to RabbitMQ integration events (`CaseSlaBreachedV1`, `ExceptionDetectedV1`, `ClaimDecisionRecordedV1`, `ClaimRecoveryRecordedV1`, `ClaimSubmittedV1`) with transactional inbox deduplication, transient error retry detection (`IsTransientError`, `GetDeathCount`), and DLX routing.
+  - Implemented `NotificationEmailRetryScanJob` Quartz.NET periodic job in `ResolveOps.Worker.Jobs` running every 2 minutes, automatically retrying failed email deliveries with exponential backoff up to 5 attempts.
   - Instrumented OpenTelemetry metrics in `ResolveOps.Observability.NotificationMetrics`: `notifications.sent.total`, `notifications.failures.total`, `notifications.email.duration.seconds`, `notifications.realtime.active_connections`.
   - Created ADR-030 (`docs/adr/ADR-030-notifications-and-realtime-operations.md`).
 
