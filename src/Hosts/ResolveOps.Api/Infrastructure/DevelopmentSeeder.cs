@@ -24,7 +24,7 @@ public static class DevelopmentSeeder
 
         await context.Database.EnsureCreatedAsync();
 
-        // 1. Seed Tenant
+        // 1. Seed Tenants
         var defaultTenantCode = "local-dev";
         var tenant = context.Tenants.FirstOrDefault(t => t.Code == defaultTenantCode);
         if (tenant == null)
@@ -40,19 +40,52 @@ public static class DevelopmentSeeder
             await context.SaveChangesAsync();
         }
 
-        // 2. Seed Admin User
-        var adminEmail = "admin@resolveops.local";
-        var admin = await userManager.FindByEmailAsync(adminEmail);
-        if (admin == null)
+        var secondaryTenantCode = "pilot-apac";
+        var secondaryTenant = context.Tenants.FirstOrDefault(t => t.Code == secondaryTenantCode);
+        if (secondaryTenant == null)
         {
-            admin = ApplicationUser.Create(adminEmail, adminEmail, timeProvider);
-            var result = await userManager.CreateAsync(admin, "DevPassword123!");
-            if (result.Succeeded)
+            secondaryTenant = Tenant.Create(secondaryTenantCode, "APAC Regional Logistics", "Asia/Singapore", "USD", timeProvider);
+            context.Tenants.Add(secondaryTenant);
+
+            var secondarySettings = TenantSettings.CreateDefault(secondaryTenant.Id, timeProvider);
+            context.TenantSettings.Add(secondarySettings);
+
+            await context.SaveChangesAsync();
+        }
+
+        // 2. Seed Demo Personas (Operations Manager, Claims Specialist, Logistics Coordinator, Finance, Admin)
+        var demoUsers = new (string Email, string[] Roles)[]
+        {
+            ("admin@resolveops.local", [ResolveOps.Security.Roles.TenantAdmin, "Admin"]),
+            ("ops.manager@resolveops.local", [ResolveOps.Security.Roles.OperationsManager]),
+            ("claims.specialist@resolveops.local", [ResolveOps.Security.Roles.ClaimsSpecialist]),
+            ("logistics.coord@resolveops.local", [ResolveOps.Security.Roles.LogisticsCoordinator]),
+            ("finance@resolveops.local", [ResolveOps.Security.Roles.Finance])
+        };
+
+        ApplicationUser? admin = null;
+        foreach (var (email, roles) in demoUsers)
+        {
+            var user = await userManager.FindByEmailAsync(email);
+            if (user == null)
             {
-                // Add membership to local-dev tenant
-                var membership = UserTenantMembership.Create(admin.Id, tenant.Id, ["Admin"], timeProvider);
-                context.UserTenantMemberships.Add(membership);
-                await context.SaveChangesAsync();
+                user = ApplicationUser.Create(email, email, timeProvider);
+                var result = await userManager.CreateAsync(user, "DevPassword123!");
+                if (result.Succeeded)
+                {
+                    var membership1 = UserTenantMembership.Create(user.Id, tenant.Id, roles, timeProvider);
+                    context.UserTenantMemberships.Add(membership1);
+
+                    var membership2 = UserTenantMembership.Create(user.Id, secondaryTenant.Id, roles, timeProvider);
+                    context.UserTenantMemberships.Add(membership2);
+
+                    await context.SaveChangesAsync();
+                }
+            }
+
+            if (email == "admin@resolveops.local")
+            {
+                admin = user;
             }
         }
 

@@ -10,7 +10,7 @@ public sealed class LoginEndpoint : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/identity/login", async (
+        var handlerDelegate = async (
             LoginCommand command,
             LoginHandler handler,
             IValidator<LoginCommand> validator,
@@ -52,12 +52,22 @@ public sealed class LoginEndpoint : IEndpoint
                 },
                 onFailure: error => error.ToProblemDetails()
             );
-        })
-        .WithName("Login")
-        .WithTags("Identity")
-        .Produces<LoginResponse>(StatusCodes.Status200OK)
-        .ProducesValidationProblem()
-        .ProducesProblem(StatusCodes.Status401Unauthorized)
-        .AllowAnonymous();
+        };
+
+        app.MapPost("/api/identity/login", handlerDelegate)
+            .WithName("Login")
+            .WithTags("Identity")
+            .Produces<LoginResponse>(StatusCodes.Status200OK)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .AllowAnonymous();
+
+        app.MapPost("/api/auth/login", handlerDelegate)
+            .WithName("AuthLogin")
+            .WithTags("Identity")
+            .Produces<LoginResponse>(StatusCodes.Status200OK)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .AllowAnonymous();
     }
 }

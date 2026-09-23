@@ -7,7 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+- **Phase 15 (Frontend production workflow)**:
+  - Scaffolding & Design System (`web/resolveops-web`):
+    - Configured Angular 19+ standalone application with TypeScript 5, Angular Material 19, RxJS, and Zod client-side validation.
+    - Designed enterprise UI theme with Dark Navy header (`#0f172a`), Slate collapsible sidebar (`#1e293b`), responsive canvas (`#f8fafc`), and custom elevation card styles.
+  - Core Services, Interceptors & Real-time Integration:
+    - `TenantService`: Multi-tenant context management, local storage persistence, reactive `currentTenant$` observable, and tenant switcher dropdown.
+    - `AuthService`: JWT token lifecycle management, persona quick-switcher (`admin`, `ops.manager`, `claims.specialist`, `logistics.coord`, `finance`), and route navigation.
+    - `AuthInterceptor`: Automatic injection of `Authorization: Bearer <token>` and `X-Tenant-Id: <tenantId>` on all outgoing HTTP requests.
+    - `ErrorInterceptor`: Automatic handling of `401 Unauthorized` (refresh token / logout), `403 Forbidden` (user toast), and `409 Conflict` (optimistic concurrency dialog trigger).
+    - `SignalRNotificationService`: Live WebSocket connection to `/hubs/notifications` with auto-reconnect, JWT token factory, notification drawer state, and real-time event subscriptions (`NotificationReceived`, `ExceptionDetected`, `ClaimStatusChanged`, `TaskAssigned`, `ExportReady`).
+    - `ConcurrencyService` & `ConcurrencyDialogComponent`: Safe handling of optimistic concurrency conflicts with diff/reload options.
+    - `FormulaSafePipe`: Defense against CSV/spreadsheet formula injection (`=`, `+`, `-`, `@`) on client-side display and exports.
+    - `UtcToLocalPipe`: User timezone localization for all UTC server timestamps.
+    - Functional route guards: `authGuard` and `roleGuard` for strict RBAC protection.
+  - 12 Enterprise Operational Screens:
+    - Login & Persona Switcher (`/login`): Standard credentials login with quick-switch persona buttons for rapid workflow simulation.
+    - Operations Dashboard (`/dashboard`): Real-time command center with KPI summary cards, SLA breach countdown table, exception ageing distribution, and quick action links.
+    - Exception Case Worklist (`/exceptions`): Filterable, searchable table with severity indicators, SLA countdown chips, and modal dialogs for Triage (`TriageDialogComponent`) and Assignment (`AssignDialogComponent`).
+    - Exception Detail (`/exceptions/:id`): 360-degree case management view with milestone timeline, financial impact metrics, root cause taxonomy, linked operational tasks, and evidence attachments.
+    - Shipment Tracking (`/shipments` & `/shipments/:id`): Multi-carrier tracking list and detail view with interactive milestone stepper, IoT sensor readings (temperature, humidity, shock), and geofence status.
+    - Task Management Queue (`/tasks`): Operational task inbox with priority indicators, SLA due-date urgency, and inline completion actions.
+    - Evidence & Document Pipeline (`/evidence`): Secure drag-and-drop document upload with client-side validation (max 25MB, MIME checking), virus scan status badges, SHA-256 integrity hashes, and file preview drawer.
+    - Claim Preparation Studio (`/claims/prepare`): Automated filing amount calculations, document completeness checklist, and explicit Rule 4 AI governance warning banners.
+    - Claim Detail & Financial Approval (`/claims/:id`): End-to-end claim resolution lifecycle with carrier response recording, appeal filing, settlement reconciliation, and role-tiered approval buttons enforced by client and server rules (<$1k Coordinator, <$10k Specialist, $10k+ Manager).
+    - Carrier Scorecards & Analytics (`/reports/carrier-scorecards`): Analytical carrier performance benchmark with date-range filters, 7 SLA/KPI performance metrics, and safe CSV export download.
+    - Ingestion Quarantine Studio (`/quarantine`): Ingestion error recovery console showing raw payload viewer, JSON structure inspector, failure diagnostics, and one-click reprocess button.
+    - Policy Engine Administration (`/admin/policies`): Rule governance center displaying active policies, condition logic inspector, and interactive test simulation drawer (dry-run evaluator).
+  - Backend Enhancements for Frontend Integration:
+    - Added CORS policy for `http://localhost:4200` with `AllowCredentials()` and SignalR WebSocket headers in `ResolveOps.Api`.
+    - Added `GET /api/tenants` feature slice (`ListTenantsEndpoint`, `ListTenantsHandler`, `ListTenantsQuery`, `ListTenantsResponse`) in `ResolveOps.Modules.Tenancy`.
+    - Added development seed personas for all operational roles (`admin@resolveops.local`, `ops.manager@resolveops.local`, `claims.specialist@resolveops.local`, `logistics.coord@resolveops.local`, `finance@resolveops.local`) and secondary tenant (`pilot-apac`) in `DevelopmentSeeder`.
+    - Added endpoint route aliases for `/api/auth/login`, `/api/auth/refresh`, and `/api/users/me` in `ResolveOps.Modules.Identity`.
+  - Created ADR-032 (`docs/adr/ADR-032-frontend-production-workflow.md`).
 
 - **Phase 14 (Reporting and carrier scorecards)**:
   - Added Reporting domain models in `ResolveOps.Domain.Reporting`: `ExportRequest` (implementing `IAuditableEntity` and `IHasConcurrencyStamp`) and `CarrierPerformanceSnapshot` (read-model aggregation entity).

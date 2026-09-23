@@ -10,7 +10,7 @@ public sealed class RefreshEndpoint : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/identity/refresh", async (
+        var handlerDelegate = async (
             RefreshHandler handler,
             HttpContext httpContext,
             CancellationToken cancellationToken) =>
@@ -56,11 +56,20 @@ public sealed class RefreshEndpoint : IEndpoint
                         detail: error.Message);
                 }
             );
-        })
-        .WithName("Refresh")
-        .WithTags("Identity")
-        .Produces<LoginResponse>(StatusCodes.Status200OK)
-        .ProducesProblem(StatusCodes.Status401Unauthorized)
-        .AllowAnonymous();
+        };
+
+        app.MapPost("/api/identity/refresh", handlerDelegate)
+            .WithName("Refresh")
+            .WithTags("Identity")
+            .Produces<LoginResponse>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .AllowAnonymous();
+
+        app.MapPost("/api/auth/refresh", handlerDelegate)
+            .WithName("AuthRefresh")
+            .WithTags("Identity")
+            .Produces<LoginResponse>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .AllowAnonymous();
     }
 }

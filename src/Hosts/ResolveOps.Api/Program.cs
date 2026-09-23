@@ -29,6 +29,18 @@ builder.AddServiceDefaults();
 // ── Problem Details (RFC 9457 error envelope) ────────────────────────────
 builder.Services.AddProblemDetails();
 
+// ── CORS for Frontend Dev Server ──────────────────────────────────────────
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.WithOrigins("http://localhost:4200", "https://localhost:4200")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
+
 // ── OpenAPI ───────────────────────────────────────────────────────────────
 builder.Services.AddOpenApi();
 
@@ -141,6 +153,7 @@ var app = builder.Build();
 app.UseServiceDefaults();
 app.UseMiddleware<CorrelationMiddleware>();
 app.UseHttpsRedirection();
+app.UseCors();
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -159,8 +172,8 @@ if (app.Environment.IsDevelopment())
 app.MapGet("/api/version", () => new
 {
     Product = "ResolveOps",
-    Phase = "14",
-    Description = "Reporting and carrier scorecards",
+    Phase = "15",
+    Description = "Frontend production workflow",
     BuildTimestamp = DateTime.UtcNow.ToString("O"),
 })
 .WithName("GetVersion")
