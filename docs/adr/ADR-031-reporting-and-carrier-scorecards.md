@@ -43,21 +43,34 @@ Key architectural and security requirements:
 - Implemented `CsvFormulaEscaper` in `ResolveOps.Application.Reporting`.
 - Any text starting with `=`, `+`, `-`, `@`, `\t`, `\r` is prepended with a single quote `'` and quoted according to RFC 4180. Internal quotes are escaped as `""`.
 
-### 4. Asynchronous Export Pipeline & MinIO Integration
-- `POST /api/exports/exception-cases` initiates an export request, validates criteria, records `ExportRequest` in `Pending` state, and returns `202 Accepted` with a polling URI.
-- `ExportProcessingJob` in `ResolveOps.Worker` (Quartz.NET, running every 30 seconds):
-  - Fetches pending requests.
-  - Transitions to `Processing`.
-  - Streams data in batches, generates safe CSV content.
-  - Uploads the stream to MinIO bucket `exports` via `IObjectStorageService.UploadObjectAsync` outside of any database transaction (Rule 10).
-  - Updates `ExportRequest` to `Completed` with metrics.
-- `GET /api/exports/{exportId:guid}` checks tenant and user authorization, returning status and generating short-lived presigned GET URLs (30 min expiry).
+### 4. Asynchronous Export Pipeline, Strategy Pattern (OCP) & MinIO Integration
+- Strategy pattern (`IExportDataGenerator`) introduced for Open/Closed Principle compliance:
+  - `ExceptionCasesExportGenerator`: Generates formula-safe CSV for exception cases with criteria filtering.
+  - `ClaimsExportGenerator`: Generates formula-safe CSV for claims with financial metrics.
+  - `CarrierScorecardsExportGenerator`: Generates formula-safe CSV for aggregated carrier scorecards.
+- Export Endpoints:
+  - `POST /api/exports/exception-cases`
+  - `POST /api/exports/claims`
+  - `POST /api/exports/carrier-scorecards`
+  - `GET /api/exports`: Lists user's recent export requests with pagination, status, and active presigned download URLs. Solves the page refresh (F5) or navigation loss issue.
+  - `GET /api/exports/{exportId:guid}`: Returns specific export status with presigned download URL.
+- `ExportProcessingJob` in `ResolveOps.Worker`:
+  - Dispatches dynamically to the appropriate `IExportDataGenerator` based on `ExportRequest.ExportType`.
+  - Streams and uploads CSV to MinIO container `exports` outside database transactions (Rule 10).
+  - Automatically records an in-app `Notification` (`NotificationClass.ExportCompleted`) and pushes a real-time SignalR notification (`INotificationRealtimeService`) to the user upon export completion.
 
-### 5. Event-Driven Carrier Scorecard Projections
-- Implemented `ReportingProjectionConsumerService` in `ResolveOps.Worker`:
-  - Listens on `resolveops.reporting` queue bound to integration events: `ShipmentCreatedV1`, `TrackingEventAcceptedV1`, `ExceptionDetectedV1`, `CaseSlaBreachedV1`, `ClaimSubmittedV1`, `ClaimDecisionRecordedV1`, `ClaimRecoveryRecordedV1`, `EvidenceAvailableV1`.
+### 5. Event-Driven Carrier Scorecard Projections (OCP & Multi-Leg Resolution)
+- Strategy pattern (`IReportingEventProjector`) introduced to adhere strictly to OCP:
+  - Individual projectors: `ShipmentCreatedProjector`, `TrackingEventAcceptedProjector`, `ExceptionDetectedProjector`, `ClaimSubmittedProjector`, `ClaimDecisionRecordedProjector`, `ClaimRecoveryRecordedProjector`.
+  - Adding future event projections requires only implementing `IReportingEventProjector` without mutating the consumer service.
+- Multi-Leg Logistics Support:
+  - `ShipmentCreatedProjector` records volume for all distinct carriers involved across all legs of the shipment.
+  - `ExceptionDetectedProjector` inspects `ExceptionCase.ShipmentLegId` to attribute the exception accurately to the responsible leg carrier rather than defaulting to leg 1.
+- `ReportingProjectionConsumerService` in `ResolveOps.Worker`:
+  - Listens on `resolveops.reporting` queue bound to monitored integration events.
   - Enforces transactional inbox deduplication (`InboxMessage`).
-  - Idempotently updates or initializes `CarrierPerformanceSnapshot` records.
+  - Dispatches to matching `IReportingEventProjector` from the DI container.
+  - Updates or initializes daily rollup `CarrierPerformanceSnapshot` records (`PeriodDate`).
 
 ### 6. Observability
 - Implemented `ReportingMetrics` in `ResolveOps.Observability`:

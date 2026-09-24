@@ -12,6 +12,7 @@ public static class NotificationClass
     public const string ClaimReviewRequested = "ClaimReviewRequested";
     public const string ClaimDecisionReceived = "ClaimDecisionReceived";
     public const string ClaimRecoveryRecorded = "ClaimRecoveryRecorded";
+    public const string ExportCompleted = "ExportCompleted";
 
     public static readonly IReadOnlyList<string> All =
     [
@@ -20,7 +21,8 @@ public static class NotificationClass
         TaskAssigned,
         ClaimReviewRequested,
         ClaimDecisionReceived,
-        ClaimRecoveryRecorded
+        ClaimRecoveryRecorded,
+        ExportCompleted
     ];
 
     public static readonly IReadOnlySet<string> Mandatory = new HashSet<string>(StringComparer.OrdinalIgnoreCase)

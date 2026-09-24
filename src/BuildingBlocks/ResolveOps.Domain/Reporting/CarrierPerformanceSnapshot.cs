@@ -2,12 +2,24 @@ using System;
 
 namespace ResolveOps.Domain.Reporting;
 
+/// <summary>
+/// Aggregated daily performance read model for a carrier within a tenant.
+/// Acts as a high-performance daily rollup bucket (OLAP read model) to prevent expensive
+/// full-table scans across millions of transactional records when rendering scorecards.
+/// </summary>
 public sealed class CarrierPerformanceSnapshot : IAuditableEntity, IHasConcurrencyStamp
 {
     public Guid Id { get; private set; }
     public Guid TenantId { get; private set; }
     public Guid CarrierId { get; private set; }
     public string CarrierName { get; private set; } = string.Empty;
+
+    /// <summary>
+    /// The daily rollup activity date (UTC calendar date) for this snapshot.
+    /// Events occurring on this calendar day increment their respective metric counters.
+    /// When querying carrier scorecards over a date range [FromDate, ToDate], snapshots
+    /// within that window are summed, delivering sub-second query performance.
+    /// </summary>
     public DateOnly PeriodDate { get; private set; }
     public int TotalShipments { get; private set; }
     public int OnTimeShipments { get; private set; }

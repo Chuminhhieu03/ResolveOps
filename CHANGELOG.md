@@ -47,17 +47,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Implemented `CsvFormulaEscaper` in `ResolveOps.Application.Reporting` providing robust protection against CSV formula injection (`=`, `+`, `-`, `@`, `\t`, `\r` prepended with `'`) and RFC 4180 quoting.
   - Extended `IObjectStorageService` and `MinIoObjectStorageService` with direct stream upload capabilities (`UploadObjectAsync`) and automatic bucket provisioning.
   - Implemented Dapper 2.1.66 analytical querying with explicit `@TenantId` parameterization alongside EF Core global query filters.
-  - Implemented 8 vertical slice Minimal API features in `ResolveOps.Modules.Reporting` (adhering strictly to 1-class-per-file convention):
+  - Implemented 11 vertical slice Minimal API features in `ResolveOps.Modules.Reporting` (adhering strictly to 1-class-per-file convention):
     - `GET /api/dashboard/operations` (alias `/dashboard/operations`): Operations dashboard with real-time severity breakdown, SLA breach/at-risk counts, unassigned tasks, delay rates, and today's activity.
     - `GET /api/dashboard/claims` (alias `/dashboard/claims`): Claims dashboard with financial recovery metrics, status breakdown, and average carrier decision response times.
     - `GET /api/reports/exception-ageing` (alias `/reports/exception-ageing`): Exception ageing distribution across operational buckets (0-24h, 24-48h, 48-72h, 3-7d, >7d) grouped by exception type and carrier.
     - `GET /api/reports/sla-performance` (alias `/reports/sla-performance`): SLA tracking, met vs. breached compliance rates, triage velocity, resolution velocity, and per-carrier performance.
     - `GET /api/reports/carrier-scorecards` (alias `/reports/carrier-scorecards`): Carrier scorecards covering all 7 spec metrics: shipment count, exception rate %, on-time rate %, severity distribution, average response time, claim approval rate %, and recovery rate %.
     - `GET /api/reports/financial-recovery` (alias `/reports/financial-recovery`): Financial recovery breakdown by carrier, transaction type (`Payment`, `CreditNote`, `Adjustment`), written-off reasons, and pending recovery balance.
-    - `POST /api/exports/exception-cases` (alias `/exports/exception-cases`): Asynchronous export initiator returning 202 Accepted with polling URI.
+    - `POST /api/exports/exception-cases` (alias `/exports/exception-cases`): Asynchronous exception cases export initiator returning 202 Accepted with polling URI.
+    - `POST /api/exports/claims` (alias `/exports/claims`): Asynchronous claims export initiator returning 202 Accepted with polling URI.
+    - `POST /api/exports/carrier-scorecards` (alias `/exports/carrier-scorecards`): Asynchronous carrier scorecards export initiator returning 202 Accepted with polling URI.
+    - `GET /api/exports` (alias `/exports`): User export history list with pagination, status tracking, and active presigned download URLs (eliminating loss of export references on page reload).
     - `GET /api/exports/{exportId:guid}` (alias `/exports/{exportId:guid}`): Tenant/user-authorized export status checker returning metrics and short-lived presigned download URLs.
-  - Implemented `ReportingProjectionConsumerService` background worker in `ResolveOps.Worker.Consumers` subscribing to RabbitMQ events (`ShipmentCreatedV1`, `TrackingEventAcceptedV1`, `ExceptionDetectedV1`, `CaseSlaBreachedV1`, `ClaimSubmittedV1`, `ClaimDecisionRecordedV1`, `ClaimRecoveryRecordedV1`, `EvidenceAvailableV1`) with transactional inbox deduplication.
-  - Implemented `ExportProcessingJob` Quartz.NET job in `ResolveOps.Worker.Jobs` running every 30 seconds, streaming CSVs outside database transactions (Rule 10) and uploading to MinIO container `exports`.
+  - Refactored `ReportingProjectionConsumerService` to adhere strictly to Open/Closed Principle (OCP) via `IReportingEventProjector` strategy pattern, supporting multi-leg carrier attribution (`ShipmentLegId`) instead of defaulting to leg 1.
+  - Refactored `ExportProcessingJob` to adhere strictly to OCP via `IExportDataGenerator` strategy pattern (`ExceptionCasesExportGenerator`, `ClaimsExportGenerator`, `CarrierScorecardsExportGenerator`).
+  - Added export completion notifications: persists in-app `Notification` (`NotificationClass.ExportCompleted`) and dispatches real-time SignalR notifications (`INotificationRealtimeService`) directly to the requesting user.
   - Added EF Core configurations: `ExportRequestConfiguration` and `CarrierPerformanceSnapshotConfiguration` with global query filters in `AppDbContext`.
   - Generated EF Core migration `20260923151333_AddReportingAndCarrierScorecards`.
   - Instrumented OpenTelemetry metrics in `ResolveOps.Observability.ReportingMetrics`: `reporting.queries.duration.seconds`, `reporting.exports.total`, `reporting.exports.duration.seconds`, `reporting.projections.processed.total`.

@@ -241,38 +241,13 @@ public sealed class ReportingProjectionConsumerService : BackgroundService
         inboxRecord.MarkProcessed(_timeProvider.GetUtcNow());
         dbContext.InboxMessages.Add(inboxRecord);
 
-        // Update read model projection
+        // Update read model projection via OCP-compliant strategy projectors
         var tenantId = envelope.TenantId.Value;
-
-        switch (envelope.EventType)
+        var projectors = scope.ServiceProvider.GetServices<ResolveOps.Modules.Reporting.Projections.IReportingEventProjector>();
+        var projector = projectors.FirstOrDefault(p => string.Equals(p.EventType, envelope.EventType, StringComparison.OrdinalIgnoreCase));
+        if (projector != null)
         {
-            case "ShipmentCreatedV1":
-                await HandleShipmentCreatedAsync(dbContext, tenantId, envelope, cancellationToken);
-                break;
-
-            case "TrackingEventAcceptedV1":
-                await HandleTrackingEventAcceptedAsync(dbContext, tenantId, envelope, cancellationToken);
-                break;
-
-            case "ExceptionDetectedV1":
-                await HandleExceptionDetectedAsync(dbContext, tenantId, envelope, cancellationToken);
-                break;
-
-            case "ClaimSubmittedV1":
-                await HandleClaimSubmittedAsync(dbContext, tenantId, envelope, cancellationToken);
-                break;
-
-            case "ClaimDecisionRecordedV1":
-                await HandleClaimDecisionRecordedAsync(dbContext, tenantId, envelope, cancellationToken);
-                break;
-
-            case "ClaimRecoveryRecordedV1":
-                await HandleClaimRecoveryRecordedAsync(dbContext, tenantId, envelope, cancellationToken);
-                break;
-
-            default:
-                // Other events tracked for telemetry
-                break;
+            await projector.ProjectAsync(dbContext, tenantId, envelope, cancellationToken);
         }
 
         ReportingMetrics.ProjectionsProcessedTotal.Add(1,
@@ -280,139 +255,5 @@ public sealed class ReportingProjectionConsumerService : BackgroundService
 
         await dbContext.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-    }
-
-    private async Task HandleShipmentCreatedAsync(
-        AppDbContext dbContext,
-        Guid tenantId,
-        IntegrationEventEnvelope envelope,
-        CancellationToken ct)
-    {
-        var evt = JsonSerializer.Deserialize<ShipmentCreatedV1>(envelope.Payload, _jsonOptions);
-        if (evt == null) return;
-
-        var leg = await dbContext.ShipmentLegs
-            .FirstOrDefaultAsync(l => l.ShipmentId == evt.ShipmentId && l.SequenceNumber == 1, ct);
-
-        if (leg != null && leg.CarrierId != Guid.Empty)
-        {
-            var periodDate = DateOnly.FromDateTime(envelope.OccurredAtUtc.UtcDateTime);
-            var snapshot = await GetOrCreateSnapshotAsync(dbContext, tenantId, leg.CarrierId, periodDate, ct);
-            snapshot.RecordShipment(_timeProvider);
-        }
-    }
-
-    private async Task HandleTrackingEventAcceptedAsync(
-        AppDbContext dbContext,
-        Guid tenantId,
-        IntegrationEventEnvelope envelope,
-        CancellationToken ct)
-    {
-        var evt = JsonSerializer.Deserialize<TrackingEventAcceptedV1>(envelope.Payload, _jsonOptions);
-        if (evt == null || evt.CarrierId == Guid.Empty) return;
-
-        var periodDate = DateOnly.FromDateTime(envelope.OccurredAtUtc.UtcDateTime);
-        var snapshot = await GetOrCreateSnapshotAsync(dbContext, tenantId, evt.CarrierId, periodDate, ct);
-
-        var isDelayed = evt.NormalizedEventType.Contains("Delayed", StringComparison.OrdinalIgnoreCase);
-        var isOnTime = evt.NormalizedEventType.Contains("Delivered", StringComparison.OrdinalIgnoreCase) && !isDelayed;
-
-        snapshot.RecordTrackingEvent(isDelayed, isOnTime, _timeProvider);
-    }
-
-    private async Task HandleExceptionDetectedAsync(
-        AppDbContext dbContext,
-        Guid tenantId,
-        IntegrationEventEnvelope envelope,
-        CancellationToken ct)
-    {
-        var evt = JsonSerializer.Deserialize<ExceptionDetectedV1>(envelope.Payload, _jsonOptions);
-        if (evt == null) return;
-
-        var leg = await dbContext.ShipmentLegs
-            .FirstOrDefaultAsync(l => l.ShipmentId == evt.ShipmentId && l.SequenceNumber == 1, ct);
-
-        if (leg != null && leg.CarrierId != Guid.Empty)
-        {
-            var periodDate = DateOnly.FromDateTime(evt.DetectedAtUtc.UtcDateTime);
-            var snapshot = await GetOrCreateSnapshotAsync(dbContext, tenantId, leg.CarrierId, periodDate, ct);
-            snapshot.RecordException(evt.Severity, _timeProvider);
-        }
-    }
-
-    private async Task HandleClaimSubmittedAsync(
-        AppDbContext dbContext,
-        Guid tenantId,
-        IntegrationEventEnvelope envelope,
-        CancellationToken ct)
-    {
-        var evt = JsonSerializer.Deserialize<ClaimSubmittedV1>(envelope.Payload, _jsonOptions);
-        if (evt == null || evt.CarrierId == Guid.Empty) return;
-
-        var periodDate = DateOnly.FromDateTime(evt.SubmittedAtUtc.UtcDateTime);
-        var snapshot = await GetOrCreateSnapshotAsync(dbContext, tenantId, evt.CarrierId, periodDate, ct);
-        snapshot.RecordClaimSubmitted(evt.ClaimedAmount, _timeProvider);
-    }
-
-    private async Task HandleClaimDecisionRecordedAsync(
-        AppDbContext dbContext,
-        Guid tenantId,
-        IntegrationEventEnvelope envelope,
-        CancellationToken ct)
-    {
-        var evt = JsonSerializer.Deserialize<ClaimDecisionRecordedV1>(envelope.Payload, _jsonOptions);
-        if (evt == null) return;
-
-        var claim = await dbContext.Claims.FirstOrDefaultAsync(c => c.Id == evt.ClaimId, ct);
-        if (claim == null || claim.CarrierId == Guid.Empty) return;
-
-        var periodDate = DateOnly.FromDateTime(evt.RecordedAtUtc.UtcDateTime);
-        var snapshot = await GetOrCreateSnapshotAsync(dbContext, tenantId, claim.CarrierId, periodDate, ct);
-
-        double? responseTime = claim.SubmittedAtUtc.HasValue
-            ? (evt.RecordedAtUtc - claim.SubmittedAtUtc.Value).TotalHours
-            : null;
-
-        snapshot.RecordClaimDecision(evt.Decision, evt.ApprovedAmount, responseTime, _timeProvider);
-    }
-
-    private async Task HandleClaimRecoveryRecordedAsync(
-        AppDbContext dbContext,
-        Guid tenantId,
-        IntegrationEventEnvelope envelope,
-        CancellationToken ct)
-    {
-        var evt = JsonSerializer.Deserialize<ClaimRecoveryRecordedV1>(envelope.Payload, _jsonOptions);
-        if (evt == null) return;
-
-        var claim = await dbContext.Claims.FirstOrDefaultAsync(c => c.Id == evt.ClaimId, ct);
-        if (claim == null || claim.CarrierId == Guid.Empty) return;
-
-        var periodDate = DateOnly.FromDateTime(evt.ReceivedAtUtc.UtcDateTime);
-        var snapshot = await GetOrCreateSnapshotAsync(dbContext, tenantId, claim.CarrierId, periodDate, ct);
-        snapshot.RecordClaimRecovery(evt.Amount, _timeProvider);
-    }
-
-    private async Task<CarrierPerformanceSnapshot> GetOrCreateSnapshotAsync(
-        AppDbContext dbContext,
-        Guid tenantId,
-        Guid carrierId,
-        DateOnly periodDate,
-        CancellationToken ct)
-    {
-        var snapshot = await dbContext.CarrierPerformanceSnapshots
-            .FirstOrDefaultAsync(s => s.TenantId == tenantId && s.CarrierId == carrierId && s.PeriodDate == periodDate, ct);
-
-        if (snapshot != null)
-        {
-            return snapshot;
-        }
-
-        var carrier = await dbContext.Carriers.FirstOrDefaultAsync(c => c.Id == carrierId, ct);
-        var carrierName = carrier?.Name ?? "Carrier";
-
-        snapshot = CarrierPerformanceSnapshot.Create(tenantId, carrierId, carrierName, periodDate, _timeProvider);
-        dbContext.CarrierPerformanceSnapshots.Add(snapshot);
-        return snapshot;
     }
 }

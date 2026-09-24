@@ -66,6 +66,8 @@ public sealed class ExportProcessingJob : IJob
             return;
         }
 
+        var generators = scope.ServiceProvider.GetServices<ResolveOps.Modules.Reporting.Services.Exports.IExportDataGenerator>();
+
         foreach (var exportRequest in pendingRequests)
         {
             if (ct.IsCancellationRequested) break;
@@ -77,7 +79,15 @@ public sealed class ExportProcessingJob : IJob
 
             try
             {
-                var (rowCount, stream) = await GenerateExportContentAsync(dbContext, exportRequest, ct);
+                var generator = generators.FirstOrDefault(g =>
+                    string.Equals(g.ExportType, exportRequest.ExportType, StringComparison.OrdinalIgnoreCase));
+
+                if (generator == null)
+                {
+                    throw new InvalidOperationException($"No export generator registered for export type '{exportRequest.ExportType}'.");
+                }
+
+                var (rowCount, stream) = await generator.GenerateAsync(dbContext, exportRequest, ct);
 
                 var fileSizeBytes = stream.Length;
                 stream.Position = 0;
@@ -94,7 +104,40 @@ public sealed class ExportProcessingJob : IJob
                     ct: ct);
 
                 exportRequest.MarkCompleted(container, blobPath, rowCount, fileSizeBytes, _timeProvider);
+
+                // Create in-app notification so user can see/access download even after F5 or page navigation
+                var notificationResult = ResolveOps.Domain.Notifications.Notification.Create(
+                    tenantId: exportRequest.TenantId,
+                    userId: exportRequest.UserId,
+                    notificationClass: ResolveOps.Domain.Notifications.NotificationClass.ExportCompleted,
+                    channel: ResolveOps.Domain.Notifications.NotificationChannel.InApp,
+                    title: $"Export Ready: {exportRequest.ExportType}",
+                    message: $"Your export containing {rowCount} rows ({fileSizeBytes:N0} bytes) is ready for download.",
+                    dataJson: JsonSerializer.Serialize(new { exportId = exportRequest.Id, exportType = exportRequest.ExportType, rowCount, fileSizeBytes, actionUrl = $"/api/exports/{exportRequest.Id}" }),
+                    timeProvider: _timeProvider);
+
+                if (notificationResult.IsSuccess)
+                {
+                    dbContext.Notifications.Add(notificationResult.Value);
+                }
+
                 await dbContext.SaveChangesAsync(ct);
+
+                // Push real-time notification to user via SignalR if available
+                var realtimeService = scope.ServiceProvider.GetService<ResolveOps.Application.Notifications.INotificationRealtimeService>();
+                if (realtimeService != null)
+                {
+                    _ = realtimeService.SendNotificationToUserAsync(exportRequest.TenantId, exportRequest.UserId, new
+                    {
+                        ExportId = exportRequest.Id,
+                        ExportType = exportRequest.ExportType,
+                        Status = ExportStatus.Completed,
+                        ActionUrl = $"/api/exports/{exportRequest.Id}",
+                        Title = $"Export Ready: {exportRequest.ExportType}",
+                        Message = $"Your {exportRequest.ExportType} export ({rowCount} rows) is ready.",
+                        CompletedAtUtc = exportRequest.CompletedAtUtc
+                    }, CancellationToken.None);
+                }
 
                 sw.Stop();
                 ReportingMetrics.ExportsDurationSeconds.Record(
@@ -119,123 +162,5 @@ public sealed class ExportProcessingJob : IJob
                     new KeyValuePair<string, object?>("status", ExportStatus.Failed));
             }
         }
-    }
-
-    private static async Task<(int rowCount, Stream stream)> GenerateExportContentAsync(
-        AppDbContext dbContext,
-        ExportRequest request,
-        CancellationToken ct)
-    {
-        var memoryStream = new MemoryStream();
-        await using var writer = new StreamWriter(memoryStream, Encoding.UTF8, leaveOpen: true);
-
-        var rowCount = 0;
-
-        // Parse filter criteria if present
-        Guid? filterCarrierId = null;
-        string? filterSeverity = null;
-        DateTimeOffset? filterFromDate = null;
-        DateTimeOffset? filterToDate = null;
-
-        if (!string.IsNullOrWhiteSpace(request.FilterCriteriaJson))
-        {
-            try
-            {
-                using var doc = JsonDocument.Parse(request.FilterCriteriaJson);
-                if (doc.RootElement.TryGetProperty("CarrierId", out var cProp) && cProp.TryGetGuid(out var cGuid))
-                {
-                    filterCarrierId = cGuid;
-                }
-                if (doc.RootElement.TryGetProperty("Severity", out var sProp))
-                {
-                    filterSeverity = sProp.GetString();
-                }
-                if (doc.RootElement.TryGetProperty("FromDate", out var fProp) && fProp.TryGetDateTimeOffset(out var fDate))
-                {
-                    filterFromDate = fDate;
-                }
-                if (doc.RootElement.TryGetProperty("ToDate", out var tProp) && tProp.TryGetDateTimeOffset(out var tDate))
-                {
-                    filterToDate = tDate;
-                }
-            }
-            catch
-            {
-                // Fallback to no filters if JSON malformed
-            }
-        }
-
-        // CSV Header
-        var header = new[]
-        {
-            "Case Number",
-            "Exception Type",
-            "Severity",
-            "Status",
-            "Detected At (UTC)",
-            "Owner Team",
-            "Shipment External Reference"
-        };
-        await writer.WriteLineAsync(CsvFormulaEscaper.FormatRow(header));
-
-        // Stream exception cases
-        var query = dbContext.ExceptionCases
-            .IgnoreQueryFilters()
-            .Where(c => c.TenantId == request.TenantId);
-
-        if (!string.IsNullOrWhiteSpace(filterSeverity))
-        {
-            query = query.Where(c => c.Severity == filterSeverity.Trim());
-        }
-
-        if (filterFromDate.HasValue)
-        {
-            query = query.Where(c => c.CreatedAtUtc >= filterFromDate.Value);
-        }
-
-        if (filterToDate.HasValue)
-        {
-            query = query.Where(c => c.CreatedAtUtc <= filterToDate.Value);
-        }
-
-        var cases = await query
-            .OrderByDescending(c => c.CreatedAtUtc)
-            .Take(10000)
-            .Select(c => new
-            {
-                c.CaseNumber,
-                c.ExceptionType,
-                c.Severity,
-                c.Status,
-                c.CreatedAtUtc,
-                c.OwnerTeamCode,
-                ShipmentRef = dbContext.Shipments
-                    .Where(s => s.Id == c.ShipmentId && s.TenantId == c.TenantId)
-                    .Select(s => s.ExternalReference)
-                    .FirstOrDefault() ?? string.Empty
-            })
-            .ToListAsync(ct);
-
-        foreach (var item in cases)
-        {
-            var row = new[]
-            {
-                item.CaseNumber,
-                item.ExceptionType,
-                item.Severity,
-                item.Status,
-                item.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
-                item.OwnerTeamCode ?? string.Empty,
-                item.ShipmentRef
-            };
-
-            await writer.WriteLineAsync(CsvFormulaEscaper.FormatRow(row));
-            rowCount++;
-        }
-
-        await writer.FlushAsync(ct);
-        memoryStream.Position = 0;
-
-        return (rowCount, memoryStream);
     }
 }

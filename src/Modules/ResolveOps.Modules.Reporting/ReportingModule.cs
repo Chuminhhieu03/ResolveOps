@@ -28,6 +28,19 @@ public static class ReportingModule
         // Auto-register endpoints
         services.AddEndpointsFromAssembly(assembly);
 
+        // Register reporting event projectors (OCP-compliant strategy pattern)
+        services.AddScoped<Projections.IReportingEventProjector, Projections.ShipmentCreatedProjector>();
+        services.AddScoped<Projections.IReportingEventProjector, Projections.TrackingEventAcceptedProjector>();
+        services.AddScoped<Projections.IReportingEventProjector, Projections.ExceptionDetectedProjector>();
+        services.AddScoped<Projections.IReportingEventProjector, Projections.ClaimSubmittedProjector>();
+        services.AddScoped<Projections.IReportingEventProjector, Projections.ClaimDecisionRecordedProjector>();
+        services.AddScoped<Projections.IReportingEventProjector, Projections.ClaimRecoveryRecordedProjector>();
+
+        // Register export data generators (OCP-compliant strategy pattern)
+        services.AddScoped<Services.Exports.IExportDataGenerator, Services.Exports.ExceptionCasesExportGenerator>();
+        services.AddScoped<Services.Exports.IExportDataGenerator, Services.Exports.ClaimsExportGenerator>();
+        services.AddScoped<Services.Exports.IExportDataGenerator, Services.Exports.CarrierScorecardsExportGenerator>();
+
         return services;
     }
 
