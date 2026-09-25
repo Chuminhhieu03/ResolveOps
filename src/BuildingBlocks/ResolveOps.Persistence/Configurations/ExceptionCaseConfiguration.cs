@@ -93,6 +93,16 @@ public sealed class ExceptionCaseConfiguration : IEntityTypeConfiguration<Except
         builder.HasIndex(c => new { c.TenantId, c.Status, c.Severity })
             .HasDatabaseName("IX_ExceptionCases_TenantStatusSeverity");
 
+        // High-performance indexes for case list filtering, pagination, and dashboard metrics
+        builder.HasIndex(c => new { c.TenantId, c.DetectedAtUtc })
+            .HasDatabaseName("IX_ExceptionCases_TenantDetectedAt");
+
+        builder.HasIndex(c => new { c.TenantId, c.CreatedAtUtc })
+            .HasDatabaseName("IX_ExceptionCases_TenantCreatedAt");
+
+        builder.HasIndex(c => new { c.TenantId, c.Status, c.DetectedAtUtc })
+            .HasDatabaseName("IX_ExceptionCases_TenantStatusDetectedAt");
+
         // Relationships
         builder.HasMany(c => c.Occurrences)
             .WithOne()

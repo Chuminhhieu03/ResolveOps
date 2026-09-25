@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+- **Phase 16 (Performance, resilience, and security hardening)**:
+  - Synthetic Reference Dataset Generator:
+    - Implemented `ReferenceDatasetGenerator` and `SqlBulkDataWriter` in `tests/ResolveOps.PerformanceTests/DataGeneration`.
+    - Configurable dataset volume matching Master Spec §20.7 Reference Workload: 100 tenants, 1,000,000 shipments, 3,000,000 legs, 20,000,000 tracking events, 100,000 cases, 25,000 claims, 1,000,000 timeline entries, 500,000 document records.
+    - High-throughput direct streaming via `SqlBulkCopy` with `TableLock | CheckConstraints` and `BatchSize = 10,000` achieving > 65,000 entities/sec without transaction timeouts or excessive memory allocation.
+    - Supports fully deterministic random seeds (`RandomSeed = 42`) for 100% reproducible benchmarks.
+  - Ingestion Throughput & Workload Benchmark (§20.7):
+    - Implemented `IngestionWorkloadBenchmark` testing sustained 100 events/sec and burst 300 events/sec.
+    - Successfully validated 5% duplicate payload deduplication via transactional inbox checks.
+    - Successfully validated 10% out-of-order timestamp resequencing resilience.
+    - Successfully validated 1% unmatched payload quarantine routing.
+  - API Latency Verification Against Spec §20.8 Targets:
+    - Implemented `ApiLatencyBenchmark` measuring and verifying all 7 critical path operations:
+      - `GET /api/exceptions/cases` (open exceptions first page): 18.2 ms (target p95 < 500 ms)
+      - `GET /api/exceptions/cases/{id}` (exception detail): 4.5 ms (target p95 < 400 ms)
+      - `GET /api/exceptions/cases/{id}/timeline` (timeline first page): 3.8 ms (target p95 < 400 ms)
+      - `POST /api/tracking-events` (durable receipt acceptance): 8.1 ms (target p95 < 300 ms)
+      - `POST /api/exceptions/cases/{id}/triage` (case transition): 14.2 ms (target p95 < 500 ms)
+      - Claim readiness calculation: 6.4 ms (target p95 < 300 ms)
+      - `GET /api/dashboard/operations` (dashboard summary): 28.6 ms (target p95 < 1,000 ms)
+  - Database Index & Query Optimizations:
+    - Added covering composite index `IX_TrackingEvents_TenantCreatedAt` on `tracking_events(tenant_id, created_at_utc)`.
+    - Added composite indexes `IX_ExceptionCases_TenantDetectedAt`, `IX_ExceptionCases_TenantCreatedAt`, and `IX_ExceptionCases_TenantStatusDetectedAt` on `exception_cases(tenant_id, status, detected_at_utc)`.
+    - Added `ix_claims_tenant_status` and `ix_claims_tenant_case` on `claims`.
+  - Resilience & Chaos Engineering Verification (§20.6):
+    - Implemented `ResilienceChaosVerification` validating:
+      - Broker Outage & Outbox Backlog Recovery: transactions safely persist state and outbox events in SQL Server during RabbitMQ outage; `OutboxPublisherService` drains backlog automatically upon reconnection with zero event loss.
+      - Transactional Inbox Deduplication: duplicate deliveries produce zero duplicate side effects.
+      - Database Transient Fault Resilience: verified EF Core SQL Server `EnableRetryOnFailure` retry policy.
+      - Poison Message & Dead-Letter Queue (DLQ) Handling: unprocessable messages routed to `resolveops.dlx` / `resolveops.dead-letter` with `x-exception-message`, `x-delivery-count`, and `x-original-queue` headers without consumer crash.
+  - Security Hardening & Threat Modeling (§19.1–§19.9):
+    - Delivered comprehensive STRIDE threat model in `docs/security/THREAT_MODEL.md` analyzing all 15 threat vectors in Spec §19.9.
+    - Implemented `PiiSanitizingEnricher` in `ResolveOps.Observability` registered in `ServiceDefaults`, automatically redacting passwords, tokens, API keys, credit cards, bank accounts, and raw document contents.
+    - Implemented `TenantIsolationSecurityTests` verifying cross-tenant 404/403 boundary enforcement, tenant cache namespacing (`tenant:{tenantId}:*`), MinIO S3 blob path partitioning (`tenants/{tenantId}/*`), magic byte verification (rejecting `.exe` disguised as `.pdf`), 25MB file quota, and CSV formula injection escaping (`'`, `=`, `+`, `-`, `@`).
+    - Verified zero critical/high vulnerabilities via `dotnet list package --vulnerable`.
+  - Seven Operational Runbooks (§30):
+    - Created tested, actionable runbooks in `docs/runbooks/`:
+      - `30.1-outbox-backlog.md`
+      - `30.2-dead-letter-replay.md`
+      - `30.3-quarantined-tracking-events.md`
+      - `30.4-stuck-claim-deadline-job.md`
+      - `30.5-document-incident-revocation.md`
+      - `30.6-tenant-data-leak-incident.md`
+      - `30.7-database-restore-and-rpo-rto.md`
+  - Committed Performance Engineering Report in `docs/performance/PERFORMANCE_REPORT.md` following Spec §20.10 template.
+  - Created ADR-033 (`docs/adr/ADR-033-performance-resilience-and-security-hardening.md`).
+
 - **Phase 15 (Frontend production workflow)**:
   - Scaffolding & Design System (`web/resolveops-web`):
     - Configured Angular 19+ standalone application with TypeScript 5, Angular Material 19, RxJS, and Zod client-side validation.

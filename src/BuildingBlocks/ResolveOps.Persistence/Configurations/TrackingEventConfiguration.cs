@@ -60,5 +60,9 @@ public sealed class TrackingEventConfiguration : IEntityTypeConfiguration<Tracki
 
         builder.HasIndex(e => new { e.TenantId, e.CarrierId, e.ExternalEventId })
             .HasDatabaseName("IX_TrackingEvents_CarrierExternalEvent");
+
+        // High-performance index for tenant-scoped reporting and dashboard queries
+        builder.HasIndex(e => new { e.TenantId, e.CreatedAtUtc })
+            .HasDatabaseName("IX_TrackingEvents_TenantCreatedAt");
     }
 }

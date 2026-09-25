@@ -86,5 +86,12 @@ public class ClaimConfiguration : IEntityTypeConfiguration<Claim>
             .IsUnique()
             .HasFilter("external_submission_reference IS NOT NULL")
             .HasDatabaseName("uix_claims_carrier_submission_ref");
+
+        // High-performance search and case relationship indexes
+        builder.HasIndex(c => new { c.TenantId, c.Status })
+            .HasDatabaseName("ix_claims_tenant_status");
+
+        builder.HasIndex(c => new { c.TenantId, c.CaseId })
+            .HasDatabaseName("ix_claims_tenant_case");
     }
 }

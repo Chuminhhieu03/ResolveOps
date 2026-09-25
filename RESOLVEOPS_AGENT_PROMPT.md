@@ -1,6 +1,6 @@
 # ResolveOps — Agent Execution Prompt
 
-> **Hướng dẫn dùng:** Copy toàn bộ prompt dưới đây và gửi cho agent để thực hiện Phase 15.
+> **Hướng dẫn dùng:** Copy toàn bộ prompt dưới đây và gửi cho agent để thực hiện Phase 16.
 
 ---
 
@@ -20,211 +20,228 @@ c:\Personal\ResolveOps\LOGISTICS_EXCEPTION_CARRIER_CLAIMS_MASTER_SPEC.md
 
 Read the specification before making any changes. Pay special attention to:
 - Section 0: Agent rules and non-negotiable constraints (Rule 4: AI is strictly forbidden from financial state transitions; Rule 10: no database transactions around slow external HTTP or exports; Rule 13: treat inbound webhooks/queue messages as untrusted; Rule 14: tenant isolation; Rule 15: cancellation tokens; Rule 16: structured logging without PII or credentials)
-- Section 4.1 & 4.2: Recipient personas and roles (Operations Manager, Claims Specialist, Logistics Coordinator, Finance, Carrier External)
-- Section 10.6: Tenant invariants (tenant isolation, tenant switching, tenant header/context on all API calls)
-- Section 11 & Section 19.9: Edge cases & Security:
-  - Stale concurrency conflict handling: ConcurrencyStamp conflict (HTTP 409) must present user-friendly conflict resolution dialogs without silent data loss.
-  - Sensitive financial fields hidden where unauthorized (Finance & Claims Specialist vs Logistics Coordinator).
-  - Presigned URL integration: Evidence document uploads via upload-intent to MinIO, secure downloads via presigned URLs.
-- Section 13.4: Frontend architecture & technology stack:
-  - Angular 19+ SPA with TypeScript in `web/resolveops-web`
-  - Angular Material (`@angular/material`) for accessible enterprise UI components
-  - Angular HttpClient + RxJS for reactive server-state management and HTTP interceptors (JWT auth, error normalization, correlation ID)
-  - Angular Reactive Forms + Zod for client-side schema validation
-  - `@microsoft/signalr` wrapped in RxJS observable service for real-time notification streams
-  - Playwright for end-to-end browser journeys
-- Section 16: Complete API endpoints inventory:
-  - Authentication & Identity: `POST /api/auth/login`, `POST /api/auth/refresh`, `GET /api/tenants`, `GET /api/users/me`
-  - Partners & Locations: `GET /api/carriers`, `GET /api/locations`, `GET /api/calendars`
-  - Shipments: `GET /api/shipments`, `GET /api/shipments/{id}`
-  - Tracking Ingestion & Quarantine: `GET /api/tracking/events`, `GET /api/tracking/quarantine`, `POST /api/tracking/quarantine/{id}/replay`
-  - Exception Cases: `GET /api/exceptions/cases`, `GET /api/exceptions/cases/{id}`, `POST /api/exceptions/cases/{id}/triage`, `POST /api/exceptions/cases/{id}/assign`, `POST /api/exceptions/cases/{id}/resolve`, `GET /api/exceptions/cases/{id}/tasks`, `POST /api/exceptions/cases/{id}/tasks/{taskId}/complete`
-  - Evidence & Documents: `GET /api/evidence/cases/{caseId}/documents`, `POST /api/evidence/upload-intent`, `GET /api/evidence/documents/{documentId}/download`
-  - Claims: `GET /api/claims`, `GET /api/claims/{id}`, `POST /api/claims/prepare`, `POST /api/claims/{id}/components`, `POST /api/claims/{id}/approve`, `POST /api/claims/{id}/submit`, `POST /api/claims/{id}/decision`, `POST /api/claims/{id}/recoveries`, `POST /api/claims/{id}/write-offs`
-  - Notifications & Realtime: `GET /api/notifications`, `GET /api/notifications/unread-count`, `POST /api/notifications/{id}/read`, `POST /api/notifications/read-all`, `GET/PUT /api/notifications/preferences`, SignalR Hub `/hubs/notifications`
-  - Dashboards & Reports: `GET /api/dashboard/operations`, `GET /api/dashboard/claims`, `GET /api/reports/exception-ageing`, `GET /api/reports/sla-performance`, `GET /api/reports/carrier-scorecards`, `GET /api/reports/financial-recovery`, `POST /api/exports/exception-cases`, `GET /api/exports/{exportId}`
-  - Policies: `GET /api/policies/sla`, `GET /api/policies/eligibility`, `GET /api/policies/evidence`
-- Section 24: Phase 15 definition, 12 required enterprise screens, UX requirements, and Definition of Done
-- ADR-021: Angular for Frontend
-- ADR-006: Auto-discovery and Concurrency Stamp
+- Section 4.1 & 4.2: Recipient personas, permissions, and roles (Operations Manager, Claims Specialist, Logistics Coordinator, Finance, Carrier External)
+- Section 10.6: Tenant invariants (tenant isolation on all queries, commands, caches, outbox/inbox messages, blob storage paths, and read models)
+- Section 11 & Section 19.9: Edge cases & Security threat model vectors:
+  - Broken object-level authorization (BOLA / IDOR)
+  - Tenant leakage through query, cache, log, export, or blob
+  - Token theft and refresh token family rotation / replay detection
+  - Webhook spoofing, HMAC signature verification, timestamp & replay protection
+  - Malicious file upload, magic byte verification, and malware quarantine pipeline
+  - CSV formula injection protection (escaped with `'`)
+  - Stored XSS in comments and document names
+  - SQL injection defense in Dapper and dynamic reporting queries
+  - Rate limiting, DoS defense, and queue flooding protection
+  - Structured logging without PII, tokens, or document bodies
+- Section 19: Security specification (§19.1–§19.9: Objectives, Authentication, Authorization RBAC policies, Tenant isolation in depth, Webhook security, File security, API security, AI boundary, Threat model checklist)
+- Section 20: Observability, reliability, and performance:
+  - §20.1 Correlation (TraceId, CorrelationId, CausationId, TenantId)
+  - §20.2 Required structured audit logs
+  - §20.3 Required OpenTelemetry metrics across API, Tracking, Exceptions, Claims, Messaging, Documents, Reporting
+  - §20.6 Reliability patterns (Transactional outbox, Idempotent inbox, Bounded retry, DLX/DLQ, Circuit breaker, Graceful shutdown, Health checks)
+  - §20.7 Reference workload: 100 tenants, 1,000,000 shipments, 3,000,000 legs, 20,000,000 tracking events, 100,000 exception cases, 25,000 claims; Sustained 100 eps, Burst 300 eps (5% duplicates, 10% out-of-order, 1% unmatched)
+  - §20.8 API performance targets (p95 < 500ms open exceptions, p95 < 400ms exception detail, p95 < 300ms tracking receipt acceptance, p95 < 500ms case transition, p95 < 300ms claim readiness, p95 < 1,000ms dashboard summary)
+  - §20.9 Performance techniques (batch inserts, compiled queries, read models, composite indexes, cursor pagination, asynchronous exports)
+- Section 22: Testing strategy (§22.4 Performance testing, §22.7 Security testing)
+- Section 24: Phase 16 definition, tasks, and Definition of Done
+- Section 30: Operational runbooks (§30.1 Outbox backlog, §30.2 Dead-letter messages, §30.3 Quarantined tracking, §30.4 Stuck claim deadline job, §30.5 Blob/document incident, §30.6 Tenant data leak suspicion, §30.7 Database restore)
+- `AGENTS.md` in the repository root and ADRs (ADR-001 through ADR-032)
 
 ## Technology Stack (mandatory — do not substitute)
 
 | Layer | Technology |
 |---|---|
-| Frontend Framework | Angular 19+ (Standalone Components, TypeScript 5+) |
-| UI Component Library | Angular Material (`@angular/material`) |
-| Reactive Programming | RxJS (Observables, Subjects, BehaviorSubjects) |
-| Client Validation | Zod + Angular Reactive Forms |
-| Realtime WebSockets | `@microsoft/signalr` (wrapped in RxJS service) connected to `/hubs/notifications` |
-| HTTP & API Client | Angular `HttpClient` with functional Interceptors (Auth, Correlation ID, Problem Details) |
-| Runtime & Language | Node >= 22.0.0 (per `.nvmrc`), TypeScript, SCSS/CSS |
-| Backend Runtime | .NET 10 LTS, ASP.NET Core Minimal APIs, EF Core 10, SQL Server 2022 |
-| Messaging & Storage | RabbitMQ 3.x, MinIO S3 Object Storage, Redis 7 |
-| Testing | Architecture tests (`ResolveOps.ArchitectureTests`), Playwright E2E |
+| Runtime | .NET 10 LTS, C# |
+| Web API | ASP.NET Core Minimal APIs |
+| ORM | EF Core 10 with SQL Server provider (`EnableRetryOnFailure`) |
+| Query Engine | Dapper 2.1.66 (pinned) + EF Core Projections |
+| Database | SQL Server 2022 (Docker: `mcr.microsoft.com/mssql/server:2022-latest`) |
+| Message Broker | RabbitMQ 3.x (Docker: `rabbitmq:3-management`) — client: `RabbitMQ.Client v7` |
+| Scheduler | Quartz.NET (in `ResolveOps.Worker`) |
+| Object Storage | MinIO (Docker: `minio/minio`) — client: `AWSSDK.S3` (presigned URLs) |
+| Cache | Redis 7 (Docker: `redis:7-alpine`) — client: `StackExchange.Redis` |
+| Observability | OpenTelemetry + Serilog + Seq (`datalust/seq`) |
+| Performance & Benchmarking | BenchmarkDotNet / NBomber or k6 / Testcontainers / `ResolveOps.PerformanceTests` |
+| Security & Diagnostics | `dotnet list package --vulnerable`, threat modeling (STRIDE), log PII sanitizers |
+| Concurrency | Optimistic Concurrency via `string ConcurrencyStamp` (ADR-006 & centralized `AppDbContext`) |
 
-**Rejected (do not add):** React, Vite, Vue, Blazor, microservices, Kubernetes, Kafka, generic repositories.
+**Rejected (do not add):** Azure proprietary services, MassTransit, AutoMapper, generic repositories, microservices, Kubernetes, Kafka.
 
 ## Current Implementation State
 
-**Current phase:** `Phase 15 — Frontend production workflow`
+**Current phase:** `Phase 16 — Performance, resilience, and security hardening`
 
-**Phases already completed:** `Phase 0 (structure), Phase 1 (foundation), Phase 2 (tenancy/identity), Phase 3 (partners/locations/calendar), Phase 4 (shipment domain), Phase 5 (messaging/outbox/inbox/RabbitMQ), Phase 6 (tracking ingestion & normalization), Phase 7 (exception policy engine & case creation), Phase 8 (exception case workflow, tasks, SLA), Phase 9 (evidence and secure document pipeline), Phase 10 (claim eligibility and draft claims), Phase 11 (claim approval, submission, response, appeal), Phase 12 (financial recovery and settlement), Phase 13 (notifications and realtime operations), Phase 14 (reporting and carrier scorecards)`
+**Phases already completed:** `Phase 0 through Phase 15 (Frontend production workflow)`
 
 **Repository state summary:**
 ```
-- Backend builds cleanly in Release mode with warnings as errors (0 errors, 0 warnings across all 29 .NET projects).
+- Solution builds cleanly in Release mode with warnings as errors (0 errors, 0 warnings across all 29 .NET projects).
 - Architecture tests pass (5 passed, 0 failed).
 - Code formatting passes strict verification (dotnet format ResolveOps.slnx --verify-no-changes exits with code 0).
-- Modular Monolith API with Minimal APIs and Vertical Slice Architecture exposing all required endpoints and SignalR notification hub (/hubs/notifications).
+- Modular Monolith architecture with .NET 10 Minimal APIs and Vertical Slice Architecture.
 - Database migrations fully applied through 20260923151333_AddReportingAndCarrierScorecards.
-- Background workers and Quartz.NET scheduled jobs active in ResolveOps.Worker:
-  - TrackingIngestionConsumerService
-  - ExceptionEvaluationConsumerService
-  - NotificationConsumerService
-  - ReportingProjectionConsumerService
-  - MissedDeadlineScanJob
-  - SlaBreachScanJob
-  - ClaimFollowUpScanJob
-  - NotificationEmailRetryScanJob
-  - DocumentProcessingWorker
-  - AbandonedUploadCleanupJob
-  - ExportProcessingJob
-- Frontend stub located in web/resolveops-web (contains .nvmrc and package.json).
-- Node version: Node v22.12.0, npm 11.6.2.
-- Tests: The user explicitly stated "Tôi không cần UT hay IT Test đâu" (I do not need UT or IT tests), so ALL UT/IT test requirements are currently waived. Backend architecture tests and clean frontend compilation (0 errors) remain strictly mandatory.
+- Complete backend modules: Tenancy, Identity, Partners, Shipments, Integrations, Tracking, Exceptions, Workflow, Documents, Claims, Notifications, Reporting, Audit.
+- Reporting subsystem refactored with Open/Closed Principle (OCP) strategy pattern:
+  - Event Projectors: IReportingEventProjector strategy with dedicated projectors for ShipmentCreated, TrackingEventAccepted, ExceptionDetected (supporting multi-leg leg carrier resolution), ClaimSubmitted, ClaimDecisionRecorded, ClaimRecoveryRecorded.
+  - Export Engine: IExportDataGenerator strategy with dedicated generators for ExceptionCases, Claims, and CarrierScorecards with CSV formula-injection escaping.
+  - Endpoints: GET /api/dashboard/operations, GET /api/dashboard/claims, GET /api/reports/exception-ageing, GET /api/reports/sla-performance, GET /api/reports/carrier-scorecards, GET /api/reports/financial-recovery, POST /api/exports/exception-cases, POST /api/exports/claims, POST /api/exports/carrier-scorecards, GET /api/exports (Export history), GET /api/exports/{exportId}.
+  - Export completion notifications: in-app Notification persistence and real-time SignalR push (NotificationClass.ExportCompleted).
+- Background workers running in ResolveOps.Worker:
+  - TrackingIngestionConsumerService (RabbitMQ v7 async consumer)
+  - ExceptionEvaluationConsumerService (RabbitMQ v7 async consumer)
+  - NotificationConsumerService (RabbitMQ v7 async consumer with transient retry & DLX)
+  - ReportingProjectionConsumerService (RabbitMQ v7 async consumer with OCP projectors)
+  - MissedDeadlineScanJob (Quartz.NET periodic scan)
+  - SlaBreachScanJob (Quartz.NET periodic scan)
+  - ClaimFollowUpScanJob (Quartz.NET periodic scan)
+  - NotificationEmailRetryScanJob (Quartz.NET periodic scan)
+  - DocumentProcessingWorker (BackgroundService for virus scanning)
+  - AbandonedUploadCleanupJob (Quartz.NET periodic cleanup)
+  - ExportProcessingJob (Quartz.NET periodic CSV export generation outside DB transactions)
+- Performance test project ready in tests/ResolveOps.PerformanceTests.
+- Tests note: The user explicitly stated "Tôi không cần UT hay IT Test đâu" (I do not need UT or IT tests), so traditional unit/integration tests for every feature are waived. However, performance benchmarks, load test harnesses, security threat models, and architecture tests remain strictly required.
 ```
 
 **Stopping point / specific task this session:**
 ```
-Implement Phase 15: Frontend production workflow according to Master Spec §24 Phase 15, §0, §4.1, §4.2, §10.6, §11, §13.4, §16, §19.9, §25, and ADR-021:
+Implement Phase 16: Performance, resilience, and security hardening according to Master Spec §24 Phase 16, §0, §4.1, §4.2, §10.6, §11, §19, §20, §22, §25, §30:
 
-1. Frontend Architecture & Scaffolding (in web/resolveops-web):
-   - Configure Angular 19+ standalone application with Angular Material, TypeScript, and RxJS.
-   - Configure angular.json, tsconfig.json, proxy.conf.json (proxying /api and /hubs to backend host).
-   - Enterprise layout with responsive top navigation header (brand, active tenant switcher, real-time notification bell with unread badge, user profile menu with role badge, logout) and collapsible sidebar navigation.
-   - Core Services & Interceptors:
-     - AuthService: login, refresh token rotation, logout, current user & role signal/observable.
-     - TenantService: active tenant resolution, tenant switcher, sets X-Tenant-Id header.
-     - AuthInterceptor: attaches JWT Bearer token to API requests; injects X-Correlation-Id header.
-     - ApiErrorInterceptor: transforms RFC 7807 Problem Details into user-friendly notifications; detects 409 ConcurrencyStamp conflicts.
-     - SignalRNotificationService: connects to /hubs/notifications with JWT token, reconnects on failure, streams real-time notifications to toast/snackbar and bell badge.
-   - Route Guards: AuthGuard, TenantGuard, RoleGuard for permission-aware navigation.
+1. Synthetic Reference Dataset Generator (§20.7, §24 Phase 16):
+   In tests/ResolveOps.PerformanceTests/ or a dedicated CLI seeding utility:
+   - Implement a high-performance synthetic data generator capable of generating the reference dataset:
+     - Configurable volume: Tenants (up to 100), Shipments (up to 1M), Shipment Legs (up to 3M), Tracking Events (up to 20M), Exception Cases (up to 100K), Claims (up to 25K), Timeline Entries, and Carrier Performance Snapshots.
+     - Uses SqlBulkCopy or optimized batch inserts for rapid local seeding without transaction timeout.
+     - Supports deterministic seeds for repeatable benchmarking.
 
-2. Twelve Required Enterprise Screens (Spec §24 Phase 15):
-   1. Login Screen:
-      - Clean enterprise auth card with email/password, demo user quick-fill presets (Operations Manager, Claims Specialist, Logistics Coordinator, Finance), tenant selector, error display.
-   2. Operational Dashboard (/dashboard/operations):
-      - Real-time KPI summary cards: Open Exceptions by severity (Critical, High, Medium, Low), SLA Breach & At-Risk count (nearing breach within 2 hours), Unassigned Tasks, Active Carrier Delay Rate, Ingestion Throughput.
-      - Severity distribution visual chart, SLA status progress bars, quick-action navigation.
-   3. Exception Work Queue (/exceptions):
-      - High-performance data table with server-side pagination, sorting, search.
-      - Filters: Carrier, Severity (Critical, High, Medium, Low), Status, Date Range.
-      - Quick actions: Triage modal (severity adjustment, root cause tag), Assignee drawer.
-      - Prominent SLA countdown badge (color-coded: green = healthy, amber = at risk, red = breached).
-   4. Exception Case Detail with Timeline (/exceptions/{id}):
-      - Header: Tracking number, carrier, priority chip, SLA clock countdown, current state.
-      - Interactive chronological audit timeline (tracking milestones, detected events, notes).
-      - Action controls: Assign, Triage, Resolve, Create Claim (guarded by role and state).
-      - Concurrency conflict handling: Gracefully alerts user if ConcurrencyStamp changed, offering 1-click reload.
-   5. Shipment Detail and Milestones (/shipments/{id}):
-      - Origin, destination, service level, expected vs actual delivery dates.
-      - Visual milestone progression tracker (Accepted, In Transit, Out for Delivery, Delivered, Exception).
-      - Raw tracking event history with timestamps and checkpoint codes.
-   6. Task List (/tasks):
-      - Operational task queue with priority indicators, due dates, assignee filters.
-      - 1-click task status update (Pending -> InProgress -> Completed) with comment.
-   7. Evidence Checklist & Upload Pipeline (/exceptions/{id}/evidence):
-      - Checklist of mandatory vs optional evidence documents per exception type.
-      - Direct MinIO upload via presigned URL: calls POST /api/evidence/upload-intent, streams file directly to S3 storage, confirms upload to API.
-      - Virus scan status indicator (Pending, Clean, Infected) and secure document viewer / presigned download link.
-   8. Claim Preparation & Amount Components (/claims/prepare or /claims/{id}/edit):
-      - Draft claim wizard: selects eligible exception case and carrier.
-      - Loss components dynamic table: Item cost, freight charge, labor, customs, salvage credit.
-      - Real-time auto-calculation of Total Claimed Amount.
-      - Client-side validation via Zod schemas ensuring non-negative decimals and valid currencies.
-      - Rule 4 Invariant: Explicitly show that financial transitions require human operator approval.
-   9. Claim Approval, Submission & Decision Timeline (/claims/{id}):
-      - Tier-based approval workflow UI: Approve for submission button enabled only for authorized roles (Logistics Coordinator vs Claims Specialist vs Operations Manager based on amount thresholds).
-      - Carrier submission package preview (manifest, claim letter, evidence links).
-      - Carrier response modal: Record Approval, Rejection (with reason code), or Dispute.
-      - Financial settlement modal: Record recovery payment / credit note / write-off with amounts.
-   10. Carrier Scorecard (/reports/carrier-scorecards):
-       - Date range and carrier filter selectors.
-       - 7-metric scorecard table: Total Shipments, Exception Rate %, On-Time Rate %, Severity Distribution, Average Response Time (hours), Claim Approval Rate %, Recovery Rate %.
-   11. Integration Quarantine Screen (/quarantine):
-       - List of failed/quarantined tracking receipts and malformed payloads.
-       - Formatted JSON payload viewer with syntax highlighting and failure reason.
-       - Replay button (POST /api/tracking/quarantine/{id}/replay) with success feedback.
-   12. Tenant Policy Administration (/admin/policies):
-       - SLA policy viewer & editor: acknowledgement minutes, resolution minutes, pause codes.
-       - Claim eligibility rules configuration and evidence requirement checklist per exception type.
+2. Ingestion & Analytical Query Performance Testing (§20.7, §20.8, §24 Phase 16):
+   - Ingestion throughput workload benchmark:
+     - Test sustained 100 events/sec and burst 300 events/sec for tracking event ingestion.
+     - Inject 5% duplicate tracking numbers/payloads (verifying inbox deduplication).
+     - Inject 10% out-of-order timestamps and 1% unmatched payloads (verifying integration quarantine).
+   - API p95 performance verification against Master Spec §20.8 targets:
+     - GET /api/exceptions/cases (open exceptions first page): target p95 < 500 ms
+     - GET /api/exceptions/cases/{id} (exception detail without document bytes): target p95 < 400 ms
+     - GET /api/exceptions/cases/{id}/timeline (timeline first page): target p95 < 400 ms
+     - POST /api/tracking/events (tracking receipt durable acceptance): target p95 < 300 ms
+     - POST /api/exceptions/cases/{id}/triage (case transition): target p95 < 500 ms
+     - Claim readiness calculation: target p95 < 300 ms
+     - GET /api/dashboard/operations (dashboard summary via read models): target p95 < 1,000 ms
+   - Profile CPU, memory allocations, slow queries, and missing database indexes.
+   - Apply database index optimizations, compiled queries, or Dapper tuning where measured bottlenecks occur.
+   - Commit reproducible measurements, before/after results, and hardware specifications in docs/performance/PERFORMANCE_REPORT.md.
 
-3. UX Polish, State & Concurrency Handling:
-   - Clear loading skeletons, spinners, and empty state illustrations across all tables and cards.
-   - Stale Concurrency Conflict Handling: Displays non-destructive conflict modal when receiving HTTP 409 with "Reload Latest Data" action.
-   - Timezone formatting: All UTC timestamps from API rendered in tenant/user local timezone using custom pipes.
-   - Realtime SignalR notification toasts (Angular Material MatSnackBar) and notification drawer slide-out.
-   - Formula-safe rendering: Table cells beginning with '=', '+', '-', '@' escaped.
+3. Resilience & Chaos Engineering Verification (§20.6, §24 Phase 16):
+   - Broker Outage & Outbox Backlog Recovery:
+     - Simulate RabbitMQ broker outage while operations create shipments, ingest tracking, and transition cases.
+     - Verify business transactions succeed and events accumulate safely in the outbox_messages table.
+     - Restore RabbitMQ connection: verify outbox publisher drains backlog automatically, with zero lost events and zero duplicate consumer side effects (via Inbox deduplication).
+   - Database Transient Fault Resilience:
+     - Verify EF Core SQL Server connection resilience (EnableRetryOnFailure configured with exponential backoff).
+   - Poison Message & Dead-Letter Queue (DLQ) Handling:
+     - Verify unprocessable/poison messages are routed to resolveops.dlx / resolveops.dead-letter with failure reason and delivery count headers.
+     - Verify consumer does not crash or loop infinitely on malformed payloads.
 
-4. Architecture & Documentation:
-   - Create `docs/adr/ADR-032-frontend-production-workflow.md`.
-   - Update `AGENTS.md` (Current Phase: Phase 15 Complete, Next: Phase 16) and `CHANGELOG.md`.
+4. Security Hardening & Threat Modeling (§19.1–§19.9, §24 Phase 16):
+   - Deliver comprehensive Threat Model in docs/security/THREAT_MODEL.md analyzing all 15 vectors from Spec §19.9:
+     - Broken Object-Level Authorization (BOLA / IDOR)
+     - Cross-tenant data leakage (queries, cache, logs, exports, MinIO blobs)
+     - Token theft and refresh token replay detection
+     - Webhook spoofing, HMAC signature verification, replay protection
+     - Malicious file uploads, mime/magic-bytes verification, virus scan sandbox
+     - CSV formula injection protection (escaped with ')
+     - Stored XSS in case comments / document metadata
+     - SQL injection defense across Dapper and EF Core queries
+     - Rate limiting & DoS defense across public webhook and ingestion endpoints
+     - Queue flooding & message bomb mitigation
+     - Secrets in source control or telemetry redaction
+     - Insecure direct blob URLs (enforced private buckets + short-lived presigned URLs)
+   - Tenant Isolation Verification:
+     - Automated test harness verifying that Tenant A cannot access, query, export, download, or mutate Tenant B's shipments, cases, claims, documents, or reports (verifying 403 Forbidden / 404 Not Found).
+   - Log Sanitization Audit:
+     - Audit Serilog and OpenTelemetry log outputs to guarantee that access tokens, passwords, credit card/bank details, PII, and raw document contents are never logged.
+   - Dependency Vulnerability Scan:
+     - Run dotnet list package --vulnerable and ensure zero critical/high vulnerabilities exist.
 
-Do NOT write Unit Tests or Integration Tests (waived by user). Frontend compilation (npm run build with 0 errors) and backend architecture tests remain strictly mandatory.
+5. Seven Operational Runbooks (Spec §30, §24 Phase 16):
+   Create tested, actionable, step-by-step markdown runbooks in docs/runbooks/:
+   - 30.1-outbox-backlog.md: Identifying oldest pending message, inspecting broker health, safe replay, escalation thresholds.
+   - 30.2-dead-letter-replay.md: Inspecting DLQ reasons, classifying transient vs. poison, correcting data, replaying to destination queue.
+   - 30.3-quarantined-tracking-events.md: Inspecting quarantine receipts, manual leg matching, replaying via API, preventing repeated mismatch.
+   - 30.4-stuck-claim-deadline-job.md: Diagnosing Quartz scheduler, manual scan invocation, verifying idempotent notifications.
+   - 30.5-document-incident-revocation.md: Revoking download intents, quarantining compromised MinIO objects, access log forensics.
+   - 30.6-tenant-data-leak-incident.md: Immediate containment, credential rotation, forensic audit log analysis, regression prevention.
+   - 30.7-database-restore-and-rpo-rto.md: Point-in-time restore procedure, migration validation, tenant financial integrity checks, measured RPO/RTO.
+
+6. Architecture Decisions & Documentation:
+   - Create docs/adr/ADR-033-performance-resilience-and-security-hardening.md.
+   - Update AGENTS.md (Current Phase: Phase 16 Complete, Next: Phase 17) and CHANGELOG.md.
+
+Do NOT write traditional Unit Tests or Integration Tests for every feature (waived by user). Architecture tests, performance benchmark harnesses, and build verification with 0 warnings/errors remain mandatory.
 ```
 
 ## Your Task
 
-1. **Inspect** the existing repository and frontend stub in `web/resolveops-web`.
-2. **Scaffold and build** the Angular 19+ application in `web/resolveops-web` with Angular Material, TypeScript, and RxJS.
-3. **Implement all 12 required screens** and shared UI components adhering strictly to enterprise UX requirements.
-4. **Implement core infrastructure**: Auth interceptor (JWT Bearer), Tenant switcher, SignalR notification service (`/hubs/notifications`), ApiClient with RFC 7807 Problem Details handling.
-5. **Enforce Optimistic Concurrency**: Ensure all update requests pass `concurrencyStamp` and handle HTTP 409 Conflict with clear user prompts.
-6. **Enforce Role-based UI visibility**: Hide or disable financial transitions and policy admin for unauthorized personas per Section 4.1/4.2.
-7. **Ensure clean compilation**: Run `npm run build` in `web/resolveops-web` (must succeed with 0 errors).
-8. **Verify backend integrity**: Run `dotnet build ResolveOps.slnx -c Release` and `dotnet test tests/ResolveOps.ArchitectureTests/ -c Release` (both must pass with 0 warnings/errors).
-9. **Write** `docs/adr/ADR-032-frontend-production-workflow.md` documenting frontend architecture, state management, and real-time integration.
-10. **Update** `CHANGELOG.md` and `AGENTS.md` with Phase 15 completion status.
-11. **Report** at the end: files created/modified, commands run, build results, and architectural summary.
+1. **Inspect** the existing repository, performance test stubs in `tests/ResolveOps.PerformanceTests`, and documentation folders in `docs/performance`, `docs/security`, and `docs/runbooks`.
+2. **Implement reference dataset generator** in `tests/ResolveOps.PerformanceTests` supporting high-speed batch seeding.
+3. **Execute performance benchmarks** for sustained/burst ingestion and API p95 response times. Profile bottlenecks, apply query/index optimizations, and record results in `docs/performance/PERFORMANCE_REPORT.md`.
+4. **Verify resilience scenarios**: test broker outage, outbox backlog draining, idempotent inbox deduplication, and DLQ routing.
+5. **Execute security audit & threat modeling**: deliver `docs/security/THREAT_MODEL.md` covering all 15 spec vectors, implement automated cross-tenant isolation tests, verify log PII redaction, and run dependency vulnerability scan.
+6. **Author all 7 operational runbooks** in `docs/runbooks/` matching Spec §30.
+7. **Ensure clean compilation**: Run `dotnet build ResolveOps.slnx -c Release` (0 warnings, 0 errors).
+8. **Verify architecture integrity**: Run `dotnet test tests/ResolveOps.ArchitectureTests/ -c Release` (5/5 passed).
+9. **Verify formatting**: Run `dotnet format ResolveOps.slnx --verify-no-changes` (exits with code 0).
+10. **Write** `docs/adr/ADR-033-performance-resilience-and-security-hardening.md`.
+11. **Update** `CHANGELOG.md` and `AGENTS.md` with Phase 16 completion status.
+12. **Report** at the end: files created/modified, benchmark results, threat model summary, runbook status, and remaining risks.
 
 ## Non-negotiable Rules (from Section 0 of spec)
 
 - Do NOT add microservices, AI features, a generic repository, or unrelated features.
 - Do NOT allow an LLM or AI to approve, reject, pay, or execute financial transitions on claims (Rule 4 & Invariant 12).
 - Do NOT bypass business invariants, tenant isolation, concurrency, idempotency, or security checks.
-- Do NOT hardcode secrets, tokens, or private credentials in frontend code.
-- Do NOT duplicate authoritative business rules on the frontend; server validation remains authoritative.
+- Do NOT use database transactions around file uploads, message publication, or external HTTP calls (Rule 10).
+- Do NOT use `.Result`, `.Wait()`, or sync-over-async.
+- Do NOT commit secrets, connection strings, or PII.
+- Do NOT use `DateTime.UtcNow` directly in testable business logic — use `TimeProvider`.
+- Do NOT use `float` or `double` for monetary values — always use `decimal` or the `Money` value object.
 - Empty catch blocks are forbidden.
 - If a requirement is ambiguous: choose the simplest reversible behavior, record the assumption in code comments and AGENTS.md, and continue.
-- Do NOT write Unit Tests or Integration Tests (waived by user). Architecture tests and build verification with 0 warnings/errors remain mandatory.
+- Do NOT write Unit Tests or Integration Tests (waived by user). Architecture tests, performance benchmarks, and security verification remain mandatory.
 
-## Definition of Done Checklist (Section 31 & §24 Phase 15)
+## Definition of Done Checklist (Section 31 & §24 Phase 16)
 
 Before marking the phase complete, verify:
-- [ ] Angular 19+ SPA in `web/resolveops-web` compiles cleanly (`npm run build` exits with code 0)
-- [ ] Backend solution builds cleanly in Release mode (`dotnet build ResolveOps.slnx --configuration Release`)
+- [ ] Build succeeds with warnings as errors (`dotnet build ResolveOps.slnx --configuration Release`)
 - [ ] Architecture tests pass with 0 failures (`dotnet test tests/ResolveOps.ArchitectureTests/ --configuration Release`)
-- [ ] All 12 required screens implemented:
-  - [ ] 1. Login screen with demo credentials and tenant selector
-  - [ ] 2. Operational dashboard with real-time KPI metrics, SLA at-risk indicators, and severity distribution
-  - [ ] 3. Exception work queue with sorting, filtering, pagination, and quick triage
-  - [ ] 4. Exception case detail with interactive chronological audit timeline and state action buttons
-  - [ ] 5. Shipment detail with visual milestone progression tracker and raw tracking history
-  - [ ] 6. Task list with priority indicators and 1-click status updates
-  - [ ] 7. Evidence checklist with direct MinIO presigned URL upload pipeline and virus scan status
-  - [ ] 8. Claim preparation wizard with dynamic loss components table and real-time total calculations
-  - [ ] 9. Claim approval, submission, carrier response, and financial recovery workflow
-  - [ ] 10. Carrier scorecard report with all 7 spec metrics
-  - [ ] 11. Integration quarantine screen with raw JSON payload viewer and replay action
-  - [ ] 12. Tenant policy administration for SLA policies and claim eligibility rules
-- [ ] Real-time SignalR notification service integrated with `/hubs/notifications`, notification drawer, unread counter, and toast alerts
-- [ ] HTTP interceptors configured for JWT Bearer tokens, correlation IDs, and Problem Details error handling
-- [ ] Stale concurrency conflict (HTTP 409) handled gracefully with user reload dialog
-- [ ] Tenant and role restrictions reflected in UI controls and navigation guards
-- [ ] UTC timestamps formatted to tenant/user local timezone
-- [ ] Sensitive financial actions and fields hidden where unauthorized
-- [ ] ADR-032 written in `docs/adr/ADR-032-frontend-production-workflow.md`
+- [ ] Formatting verification passes (`dotnet format ResolveOps.slnx --verify-no-changes`)
+- [ ] Reference dataset generator implemented with batch insert optimization
+- [ ] Ingestion throughput tested (sustained 100 eps, burst 300 eps, with duplicates, out-of-order, and unmatched)
+- [ ] API p95 response time targets verified against Spec §20.8:
+  - [ ] Open exceptions list: p95 < 500 ms
+  - [ ] Exception detail: p95 < 400 ms
+  - [ ] Timeline entries: p95 < 400 ms
+  - [ ] Tracking receipt durable acceptance: p95 < 300 ms
+  - [ ] Case triage transition: p95 < 500 ms
+  - [ ] Claim readiness calculation: p95 < 300 ms
+  - [ ] Operations dashboard summary: p95 < 1,000 ms
+- [ ] Performance report committed with reproducible before/after results in `docs/performance/PERFORMANCE_REPORT.md`
+- [ ] Broker outage and outbox recovery verified: outbox backlog drains cleanly without message loss or duplicate side effects
+- [ ] Database transient failure resilience verified (`EnableRetryOnFailure`)
+- [ ] DLQ and dead-letter routing verified with delivery count and failure headers
+- [ ] Threat model completed in `docs/security/THREAT_MODEL.md` addressing all 15 threat vectors in §19.9
+- [ ] Tenant isolation test suite verifies cross-tenant boundary enforcement (queries, mutations, blobs, exports)
+- [ ] File security verified (magic bytes validation, oversize protection, malware quarantine flow)
+- [ ] Log sanitization verified (zero PII, credentials, tokens, or document bodies in logs/telemetry)
+- [ ] Dependency scan verified (`dotnet list package --vulnerable` shows zero critical/high issues)
+- [ ] All 7 operational runbooks written and verified in `docs/runbooks/`:
+  - [ ] `30.1-outbox-backlog.md`
+  - [ ] `30.2-dead-letter-replay.md`
+  - [ ] `30.3-quarantined-tracking-events.md`
+  - [ ] `30.4-stuck-claim-deadline-scan.md`
+  - [ ] `30.5-document-incident-revocation.md`
+  - [ ] `30.6-tenant-data-leak-incident.md`
+  - [ ] `30.7-database-restore-and-rpo-rto.md`
+- [ ] ADR-033 written in `docs/adr/ADR-033-performance-resilience-and-security-hardening.md`
 - [ ] `AGENTS.md` and `CHANGELOG.md` updated with phase status
 
 ---
@@ -233,10 +250,10 @@ Before marking the phase complete, verify:
 
 ### Trường bắt buộc điền mỗi lần:
 
-| Trường | Mô tả | Giá trị cho Phase 15 |
+| Trường | Mô tả | Giá trị cho Phase 16 |
 |---|---|---|
-| `[Current phase]` | Phase đang làm theo Section 24 | `Phase 15 — Frontend production workflow` |
-| `[Phases already completed]` | Danh sách phase đã xong | `Phase 0 through Phase 14 (Reporting and carrier scorecards)` |
-| `[Repository state summary]` | Tình trạng repo hiện tại | Clean build Release 0 errors/warnings (29 projects), ArchTests 5/5 pass, EF migration `20260923151333_AddReportingAndCarrierScorecards`, all backend endpoints & SignalR hubs ready |
-| `[Stopping point]` | Bạn đang dừng ở đâu và muốn làm gì tiếp | Triển khai Frontend Angular 19+ SPA trong `web/resolveops-web`, thiết lập Angular Material, layout doanh nghiệp, HTTP interceptors, SignalR real-time client, 12 màn hình nghiệp vụ (Login, Dashboards, Exception Queue, Case Detail timeline, Shipment milestones, Task list, Evidence upload intent, Claim wizard, Approval & Settlement, Carrier scorecards, Quarantine replay, Policy admin), xử lý concurrency conflict (409) và role-based authorization |
+| `[Current phase]` | Phase đang làm theo Section 24 | `Phase 16 — Performance, resilience, and security hardening` |
+| `[Phases already completed]` | Danh sách phase đã xong | `Phase 0 through Phase 15 (Frontend production workflow)` |
+| `[Repository state summary]` | Tình trạng repo hiện tại | Clean build Release 0 errors/warnings (29 projects), ArchTests 5/5 pass, format verified, full backend modules & background workers active, OCP projectors & export generators implemented |
+| `[Stopping point]` | Bạn đang dừng ở đâu và muốn làm gì tiếp | Triển khai bộ sinh dữ liệu mẫu tham chiếu (Reference dataset generator), kiểm thử hiệu năng ingestion (100–300 eps) và p95 latency API, kiểm thử độ chịu lỗi broker outage/outbox draining/DLQ, hoàn thiện Threat Model 15 vectors trong `docs/security/THREAT_MODEL.md`, kiểm tra cô lập đa tenant (Cross-tenant isolation), kiểm tra log không lộ PII/token, và viết 7 runbooks vận hành trong `docs/runbooks/` |
 

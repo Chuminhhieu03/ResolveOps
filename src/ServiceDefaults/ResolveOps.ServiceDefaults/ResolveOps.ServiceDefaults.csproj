@@ -28,4 +28,8 @@
     <PackageReference Include="AspNetCore.HealthChecks.Redis" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\BuildingBlocks\ResolveOps.Observability\ResolveOps.Observability.csproj" />
+  </ItemGroup>
+
 </Project>

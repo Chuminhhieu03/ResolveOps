@@ -68,7 +68,8 @@ public static class Extensions
                 .ReadFrom.Services(serviceProvider)
                 .Enrich.FromLogContext()
                 .Enrich.WithEnvironmentName()
-                .Enrich.WithMachineName();
+                .Enrich.WithMachineName()
+                .Enrich.With<ResolveOps.Observability.PiiSanitizingEnricher>();
         });
 
         return builder;
